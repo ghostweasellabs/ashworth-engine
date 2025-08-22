@@ -1,0 +1,149 @@
+data_collection_task:
+  description: >
+    Gather and consolidate all relevant financial records to build a complete, auditable dataset
+    for high‑value clients. Sources include bank/credit statements, investment accounts, vendor
+    ledgers, payroll, invoices/receipts, and document scans. This dataset powers downstream
+    compliance checks, tax categorization, analysis, and reporting.
+  expected_output: >
+    - Unified raw dataset with source tags (bank, card, brokerage, AP/AR, payroll)
+    - Source coverage audit (what was found vs. expected; gaps listed)
+    - Anomaly log with >= $100,000 transactions flagged and summarized
+    - Summary table of assets, liabilities, income, expenses, and cash‑flow patterns
+    - Provenance manifest (file names, hashes, retrieval timestamps)
+  agent: data_fetcher
+  async_execution: true
+  markdown: true
+  output_file: data/client_{client_id}/raw/collection_summary.md
+  create_directory: true
+
+data_processing_task:
+  description: >
+    Clean, normalize, and validate the collected records to reach compliance‑grade quality.
+    Deduplicate, standardize schemas (dates, amounts, currencies, account ids), infer missing
+    fields when possible, and compute dataset quality metrics. Flag suspicious patterns for review.
+  expected_output: >
+    - Clean, normalized transaction table with schema: [date, amount, currency, account_id, counterparty, memo, source]
+    - Data quality profile (completeness %, duplicate count removed, invalid field count, currency normalization notes)
+    - Anomaly & exception register with recommended follow‑ups
+    - Risk indicators tied to records (e.g., OFAC, AML heuristics if applicable)
+    - Processing summary with KPIs: target ≥99.99% validated rows within 24h turnaround
+  agent: data_processor
+  context: [data_collection_task]
+  markdown: true
+  output_file: data/client_{client_id}/processed/processing_summary.md
+  create_directory: true
+  guardrail: validate_dataset_integrity
+
+tax_categorization_task:
+  description: >
+    Categorize all transactions under applicable tax regimes (federal/state/local and any relevant
+    international exposure). Apply firm taxonomy and identify optimization opportunities (deductible
+    expenses, timing strategies, loss harvesting). Maintain zero‑error tolerance for compliance.
+  expected_output: >
+    - Categorized transactions table with tax codes and rationale notes
+    - Reconciliation report: categorized totals vs. GL/bank totals (variance ≤ 0.1%)
+    - Tax optimization opportunities list with estimated savings and citations
+    - Items requiring specialist review (edge cases, uncertain jurisdictional treatment)
+    - Compliance checklist confirming alignment with current IRS/state guidance
+  agent: categorizer
+  context: [data_processing_task]
+  markdown: true
+  output_file: reports/client_{client_id}/tax_categorization.md
+  create_directory: true
+  guardrail: validate_tax_categorization
+
+financial_analysis_task:
+  description: >
+    Perform comprehensive financial analysis: cash‑flow drivers, unit economics, margin trends,
+    variance vs. prior periods, and scenario projections. Incorporate categorized/taxed views where
+    relevant to quantify after‑tax outcomes and risk exposures.
+  expected_output: >
+    - KPI deck: revenue growth, GM/EBITDA, CAC/LTV (if applicable), cash runway
+    - Cohort or segment analysis (customers, products, locations) with insights
+    - 3‑scenario projections (base, upside, downside) with key assumptions
+    - Risk register with likelihood/impact and mitigation proposals
+    - Executive bullets (≤7) summarizing decisive actions
+  agent: data_processor
+  context: [data_processing_task, tax_categorization_task]
+  markdown: true
+  output_file: reports/client_{client_id}/financial_analysis.md
+  create_directory: true
+  guardrail: validate_financial_analysis
+
+strategic_planning_task:
+  description: >
+    Convert analysis and compliance constraints into a prioritized, time‑phased strategic plan.
+    Define initiatives, owners, timelines, and measurable targets. Align recommendations with
+    client risk tolerance and capital constraints.
+  expected_output: >
+    - Roadmap with initiatives, owners, milestones, and budget ranges
+    - Target KPIs with baseline and expected lift; review cadence and dashboards to track
+    - Dependencies and risks, with contingency playbooks
+    - Implementation timeline (next 30/60/90 days and 12‑month horizon)
+    - One‑page executive summary of strategy
+  agent: orchestrator
+  context: [financial_analysis_task, compliance_verification_task, wealth_optimization_task]
+  markdown: true
+  output_file: reports/client_{client_id}/strategic_plan.md
+  create_directory: true
+  guardrail: validate_strategy
+
+comprehensive_reporting_task:
+  description: >
+    Produce an executive‑ready report that tells the end‑to‑end story: what was collected, how it was
+    processed, what it means, and what to do next. Ensure it is board‑pack quality and suitable for
+    advisors (accounting, legal, wealth).
+  expected_output: >
+    - Executive summary (≤12 bullets) with decisions and required approvals
+    - Visuals: trend charts, funnels, waterfall, and variance bridges as applicable
+    - Linked appendices: data provenance, QA metrics, categorization notes, compliance confirmations
+    - Action checklist with owners/dates; open issues and next steps
+    - Report quality KPI: ≥90% exec approval in pilot reviews
+  agent: report_generator
+  context:
+    - data_collection_task
+    - data_processing_task
+    - tax_categorization_task
+    - financial_analysis_task
+    - compliance_verification_task
+    - wealth_optimization_task
+    - strategic_planning_task
+  markdown: true
+  output_file: reports/client_{client_id}/executive_report.md
+  create_directory: true
+  guardrail: validate_report_format
+
+compliance_verification_task:
+  description: >
+    Verify adherence to IRS/SEC/state regulations and any international reporting obligations.
+    Confirm documentation sufficiency and produce an auditable checklist. Flag potential exposure
+    areas and remediation steps.
+  expected_output: >
+    - Compliance verification checklist with evidence links
+    - Findings log: issues, severity, owner, remediation plan, ETA
+    - Jurisdictional summary (filings/treaties/offshore reporting if applicable)
+    - Readiness statement for audit/board review
+  agent: categorizer
+  context: [tax_categorization_task]
+  async_execution: true
+  markdown: true
+  output_file: reports/client_{client_id}/compliance_verification.md
+  create_directory: true
+  guardrail: validate_compliance_report
+
+wealth_optimization_task:
+  description: >
+    Identify and quantify wealth optimization opportunities (asset allocation, tax‑efficient vehicles,
+    charitable strategies, entity structure, estate planning alignment). Ground recommendations in the
+    analysis and categorized views; include risk and liquidity considerations.
+  expected_output: >
+    - Opportunity matrix with estimated impact (after‑tax), risk, and effort
+    - Portfolio adjustment recommendations with rationale
+    - Liquidity and contingency planning notes (e.g., credit lines, reserves)
+    - Implementation checklist (who/when/how) and monitoring plan
+  agent: orchestrator
+  context: [financial_analysis_task, tax_categorization_task]
+  markdown: true
+  output_file: reports/client_{client_id}/wealth_optimization.md
+  create_directory: true
+  guardrail: validate_wealth_plan
