@@ -36,8 +36,8 @@ Any gaps or assumptions (such as data specifics or external data requirements) a
   The narrative must be clear and compelling for C-suite executives, using professional yet accessible language and data-driven storytelling.
 
 - **Visual Analytics (Charts):**  
-  Support visualizing key data in charts within the report. This includes trends over time (e.g., revenue or cashflow graphs), category breakdowns (pie or bar charts of expenses by category), and other Apache ECharts/Matplotlib-style visuals to enhance understanding.  
-  The system should programmatically generate these charts (e.g., using Python plotting libraries) and embed them in the report output (as images in PDFs or links in Markdown).
+  Support visualizing key data in charts within the report. This includes trends over time (e.g., revenue or cashflow graphs), category breakdowns (pie or bar charts of expenses by category), and other Apache ECharts-style visuals to enhance understanding.  
+  The system should programmatically generate these charts (e.g., using Python pyecharts library) and embed them in the report output (as images in PDFs or links in Markdown).
 
 - **Multi-Format Output Delivery:**  
   Provide the report in multiple formats. At a minimum: Markdown (useful for easy editing or quick sharing), LaTeX (for high-quality typesetting, if complex formulas or formatting is needed), and PDF (for a polished, portable final deliverable).  
