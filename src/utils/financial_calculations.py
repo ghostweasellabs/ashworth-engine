@@ -148,7 +148,7 @@ def detect_anomalies(transactions: List[Transaction]) -> List[str]:
     
     return anomalies
 
-def detect_patterns(transactions: List[Transaction]) -> Dict[str, any]:
+def detect_patterns(transactions: List[Transaction]) -> Dict[str, int]:
     """Detect spending and income patterns"""
     if not transactions:
         return {}
@@ -163,7 +163,7 @@ def detect_patterns(transactions: List[Transaction]) -> Dict[str, any]:
             vendor_counts[vendor] += 1
     
     patterns["vendor_count"] = len(vendor_counts)
-    patterns["top_vendor"] = max(vendor_counts.items(), key=lambda x: x[1])[0] if vendor_counts else "Unknown"
+    patterns["top_vendor_frequency"] = max(vendor_counts.values()) if vendor_counts else 0
     
     # Monthly spending pattern
     monthly_spending = defaultdict(Decimal)
@@ -172,7 +172,7 @@ def detect_patterns(transactions: List[Transaction]) -> Dict[str, any]:
             month = t.date[:7]  # YYYY-MM format
             monthly_spending[month] += abs(t.amount)
     
-    patterns["monthly_variation"] = len(set(monthly_spending.values())) > 1
+    patterns["monthly_variation"] = 1 if len(set(monthly_spending.values())) > 1 else 0
     
     # Transaction frequency
     patterns["total_transactions"] = len(transactions)

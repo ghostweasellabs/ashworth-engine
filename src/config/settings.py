@@ -8,6 +8,18 @@ class Settings(BaseSettings):
     llm_provider: str = "openai"
     embedding_model: str = "text-embedding-ada-002"
     
+    # GPT Model Configuration
+    primary_model: str = "gpt-4.1"  # For complex analysis and report generation
+    secondary_model: str = "gpt-4.1-mini"  # For simple tasks and validation
+    fallback_model: str = "gpt-4o"  # Emergency fallback
+    
+    # Model routing configuration
+    use_mini_for_classification: bool = True
+    use_primary_for_reports: bool = True
+    max_tokens_primary: int = 32768
+    max_tokens_secondary: int = 16384
+    temperature: float = 0.1
+    
     # Supabase Configuration
     supabase_url: str = "http://127.0.0.1:54321"
     supabase_anon_key: Optional[str] = None

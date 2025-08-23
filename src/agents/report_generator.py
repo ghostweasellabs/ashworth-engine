@@ -38,8 +38,9 @@ def report_generator_agent(state: OverallState) -> Dict[str, Any]:
                     storage_path, file
                 )
                 
-                if hasattr(result, 'error') and result.error:
-                    raise Exception(f"Storage upload failed: {result.error}")
+                # Check if upload was successful (Supabase doesn't have .error attribute)
+                if result is None:
+                    raise Exception("Storage upload failed: No response from Supabase")
                 
                 report_path = storage_path
             
@@ -81,6 +82,16 @@ def report_generator_agent(state: OverallState) -> Dict[str, Any]:
             "charts": [],
             "workflow_phase": "report_generation_complete",
             "error_messages": []
+        }
+        
+    except Exception as e:
+        logger.log_agent_activity(
+            "report_generator", "generation_failed", trace_id,
+            error=str(e)
+        )
+        return {
+            "error_messages": [f"Report generator error: {str(e)}"],
+            "workflow_phase": "report_generation_failed"
         }
 
 def generate_comprehensive_report(state: OverallState) -> str:
@@ -256,13 +267,3 @@ This analysis provides a comprehensive overview of your financial position and i
 """
     
     return report
-        
-    except Exception as e:
-        logger.log_agent_activity(
-            "report_generator", "generation_failed", trace_id,
-            error=str(e)
-        )
-        return {
-            "error_messages": [f"Report generator error: {str(e)}"],
-            "workflow_phase": "report_generation_failed"
-        }

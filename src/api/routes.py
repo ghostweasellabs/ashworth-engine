@@ -75,8 +75,14 @@ async def create_report(
             "charts": []
         }
         
-        # Execute workflow
-        result = await workflow_app.ainvoke(initial_state)
+        # Execute workflow with proper configuration
+        config = {
+            "configurable": {
+                "thread_id": trace_id,
+                "checkpoint_ns": f"client_{client_id}"
+            }
+        }
+        result = workflow_app.invoke(initial_state, config)
         
         # Process result
         if result.get("error_messages"):

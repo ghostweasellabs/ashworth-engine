@@ -184,6 +184,8 @@ def calculate_growth_trends(transactions: List[Transaction]) -> Dict:
 
 ### 3.2 Enhanced Tax Categorization
 
+Before we do this, we need to find US IRS docuemnts related to taxation for the current year and ingest it into our RAG. We need to ensure that we have a good understanding of the taxation rules before implementing any changes. This needs to be done for the current year (2025), which includes the OBBB. The taxs categories below are rudimentary, but can be expanded upon based on the specific requirements of the use case. We should also enable the LLM to assign tax codes based off the information learned from the RAG. We need to locate the NAICS codes as well, and use them.
+
 **Implement comprehensive tax rules in `src/agents/tax_categorizer.py`:**
 
 ```python
