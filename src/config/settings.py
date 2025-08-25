@@ -41,6 +41,31 @@ class Settings(BaseSettings):
     vector_dimension: int = 1536
     vector_similarity_threshold: float = 0.8
     
+    # RAG Configuration
+    rag_enabled: bool = True
+    rag_chunk_size: int = 1000
+    rag_chunk_overlap: int = 200
+    rag_top_k: int = 5
+    rag_score_threshold: float = 0.7
+    rag_collection_names: dict = {
+        "irs_documents": "irs_documents",
+        "financial_regulations": "financial_regulations", 
+        "tax_guidance": "tax_guidance",
+        "user_documents": "user_documents"
+    }
+    
+    # Memory and Persistence Configuration  
+    enable_checkpointing: bool = True
+    enable_shared_memory: bool = True
+    memory_ttl_hours: int = 168  # 7 days
+    checkpoint_retention_days: int = 30
+    
+    # Store Configuration for Shared Memory
+    store_index_config: dict = {
+        "dims": 1536,
+        "fields": ["$"]  # Embed entire document by default
+    }
+    
     # API Configuration
     api_auth_key: Optional[str] = None
     ae_env: str = "development"
@@ -49,6 +74,11 @@ class Settings(BaseSettings):
     max_upload_size: int = 52428800  # 50MB
     report_retention_days: int = 90
     ocr_language: str = "eng"
+    
+    # Document Ingestion Configuration
+    supported_doc_types: list = ["pdf", "txt", "md", "docx", "csv", "xlsx"]
+    max_doc_size_mb: int = 50
+    ingestion_batch_size: int = 100
     
     # Performance
     max_concurrent_requests: int = 5

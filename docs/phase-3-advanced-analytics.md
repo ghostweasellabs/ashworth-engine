@@ -553,11 +553,11 @@ def choose_model_for_task(task_type: str, content_length: int) -> str:
     
     if task_type == "report_generation":
         if content_length > 50000:
-            return "gpt-4-turbo"  # Better context handling
+            return "gpt-4.1"  # Better context handling
         else:
-            return "gpt-4o"  # Latest model for quality
+            return "gpt-4.1"  # Latest model for quality
     
-    return "gpt-4o"  # Default
+    return "gpt-4.1"  # Default
 ```
 
 ### 3.4 Chart Generation

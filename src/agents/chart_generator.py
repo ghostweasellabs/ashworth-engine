@@ -1,4 +1,5 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
+from langchain_core.runnables import RunnableConfig
 import os
 import tempfile
 from pyecharts.charts import Line, Bar, Pie
@@ -14,7 +15,10 @@ from src.config.settings import settings
 
 logger = StructuredLogger()
 
-def chart_generator_agent(state: OverallState) -> Dict[str, Any]:
+def chart_generator_agent(state: OverallState, 
+                         config: Optional[RunnableConfig] = None, 
+                         *, 
+                         store=None) -> Dict[str, Any]:
     """Generate professional charts and visualizations using Apache ECharts"""
     trace_id = state.get("trace_id", "unknown")
     client_id = state.get("client_id")

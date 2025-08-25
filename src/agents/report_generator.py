@@ -1,16 +1,24 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
+from langchain_core.runnables import RunnableConfig
 from src.workflows.state_schemas import OverallState, FinancialMetrics, TaxSummary
 from src.utils.supabase_client import supabase_client
 from src.utils.logging import StructuredLogger
+from src.utils.vector_operations import get_vector_store
+from src.utils.memory_store import get_shared_memory_store, MemoryNamespaces
+from src.utils.llm_integration import get_llm_client
 from src.config.settings import settings
 import tempfile
 import os
+import asyncio
 from datetime import datetime
 
 logger = StructuredLogger()
 
-def report_generator_agent(state: OverallState) -> Dict[str, Any]:
-    """Generate and store consulting-grade narrative report"""
+def report_generator_agent(state: OverallState, 
+                          config: Optional[RunnableConfig] = None, 
+                          *, 
+                          store=None) -> Dict[str, Any]:
+    """Generate and store consulting-grade narrative report with RAG enhancement"""
     trace_id = state.get("trace_id", "unknown")
     
     try:
@@ -18,8 +26,15 @@ def report_generator_agent(state: OverallState) -> Dict[str, Any]:
             "report_generator", "start_generation", trace_id
         )
         
-        # Generate comprehensive report
-        report_md = generate_comprehensive_report(state)
+        # Generate comprehensive report with RAG enhancement
+        report_md = asyncio.run(
+            generate_rag_enhanced_report(state, config, store)
+        )
+        
+        # Store report insights in shared memory
+        asyncio.run(
+            store_report_insights(state, report_md, config, store)
+        )
         
         # Store report in Supabase Storage
         report_path = None
@@ -267,3 +282,455 @@ This analysis provides a comprehensive overview of your financial position and i
 """
     
     return report
+
+# RAG Enhancement Functions
+
+async def generate_rag_enhanced_report(state: OverallState, 
+                                     config: Optional[RunnableConfig] = None,
+                                     store=None) -> str:
+    """Generate comprehensive report enhanced with RAG-retrieved insights"""
+    try:
+        # Start with the standard comprehensive report
+        base_report = generate_comprehensive_report(state)
+        
+        if not settings.rag_enabled or not store:
+            return base_report
+        
+        # Enhance report with RAG insights
+        enhanced_sections = await gather_rag_insights(state, config, store)
+        
+        # Insert enhanced sections into the report
+        enhanced_report = insert_rag_sections(base_report, enhanced_sections)
+        
+        return enhanced_report
+        
+    except Exception as e:
+        logger.log_agent_activity(
+            "report_generator", "rag_enhancement_failed", "unknown",
+            error=str(e)
+        )
+        # Fallback to standard report
+        return generate_comprehensive_report(state)
+
+async def gather_rag_insights(state: OverallState, 
+                             config: Optional[RunnableConfig] = None,
+                             store=None) -> Dict[str, str]:
+    """Gather insights from various RAG sources"""
+    insights = {}
+    
+    try:
+        financial_metrics = state.get("financial_metrics")
+        tax_summary = state.get("tax_summary")
+        analysis_type = state.get("analysis_type", "financial_analysis")
+        
+        # 1. Industry benchmarks and best practices
+        if financial_metrics:
+            industry_insights = await get_industry_benchmarks(
+                financial_metrics, analysis_type
+            )
+            if industry_insights:
+                insights["industry_benchmarks"] = industry_insights
+        
+        # 2. Tax optimization strategies
+        if tax_summary:
+            tax_strategies = await get_tax_optimization_strategies(
+                tax_summary
+            )
+            if tax_strategies:
+                insights["advanced_tax_strategies"] = tax_strategies
+        
+        # 3. Regulatory compliance insights
+        compliance_insights = await get_compliance_insights(
+            state
+        )
+        if compliance_insights:
+            insights["regulatory_insights"] = compliance_insights
+        
+        # 4. Historical context from shared memory
+        user_context = await get_user_historical_context(
+            config, store
+        )
+        if user_context:
+            insights["historical_context"] = user_context
+        
+        return insights
+        
+    except Exception as e:
+        logger.log_agent_activity(
+            "report_generator", "rag_insights_failed", "unknown",
+            error=str(e)
+        )
+        return {}
+
+async def get_industry_benchmarks(financial_metrics: FinancialMetrics, 
+                                analysis_type: str) -> Optional[str]:
+    """Get industry benchmarks and best practices"""
+    try:
+        # Search for industry-specific insights
+        business_types = financial_metrics.detected_business_types or ["general business"]
+        primary_business = business_types[0] if business_types else "general business"
+        
+        financial_regs_store = get_vector_store("financial_regulations")
+        
+        search_query = f"industry benchmarks {primary_business} financial performance metrics"
+        
+        benchmark_results = await financial_regs_store.similarity_search(
+            query=search_query,
+            k=3,
+            threshold=0.7,
+            namespace="general"
+        )
+        
+        if benchmark_results:
+            # Compile benchmark insights
+            benchmark_text = "\n\n".join([
+                f"Industry Insight: {content[:300]}..."
+                for content, score, _ in benchmark_results
+            ])
+            
+            # Use LLM to synthesize insights
+            llm_client = get_llm_client()
+            synthesis_prompt = f"""Based on the following industry benchmarks and the business's financial metrics, provide 3-4 key insights comparing performance to industry standards:
+
+Business Metrics:
+- Revenue: ${financial_metrics.total_revenue:,.2f}
+- Expenses: ${financial_metrics.total_expenses:,.2f}
+- Gross Margin: {financial_metrics.gross_margin_pct:.1f}%
+
+Industry Benchmarks:
+{benchmark_text}
+
+Provide actionable insights in bullet point format."""
+            
+            synthesis = await llm_client.agenerate_text(
+                synthesis_prompt,
+                task_type="report_generation",
+                max_tokens=400
+            )
+            
+            return synthesis
+            
+    except Exception as e:
+        logger.log_agent_activity(
+            "report_generator", "industry_benchmarks_failed", "unknown",
+            error=str(e)
+        )
+    
+    return None
+
+async def get_tax_optimization_strategies(tax_summary: TaxSummary) -> Optional[str]:
+    """Get advanced tax optimization strategies"""
+    try:
+        tax_guidance_store = get_vector_store("tax_guidance")
+        
+        # Focus on categories with significant amounts
+        major_categories = [
+            category for category, amount in tax_summary.business_expense_categories.items()
+            if amount > 1000  # Focus on categories over $1,000
+        ]
+        
+        if not major_categories:
+            return None
+        
+        search_query = f"advanced tax strategies optimization {' '.join(major_categories[:3])}"
+        
+        strategy_results = await tax_guidance_store.similarity_search(
+            query=search_query,
+            k=3,
+            threshold=0.7,
+            namespace="general"
+        )
+        
+        if strategy_results:
+            strategies_text = "\n\n".join([
+                f"Tax Strategy: {content[:250]}..."
+                for content, score, _ in strategy_results
+            ])
+            
+            # Use LLM to generate specific recommendations
+            llm_client = get_llm_client()
+            strategy_prompt = f"""Based on the following tax strategies and the business's expense profile, provide 3-4 specific, actionable tax optimization recommendations:
+
+Business Expense Profile:
+- Total Deductible: ${tax_summary.total_deductible_expenses:,.2f}
+- Major Categories: {', '.join(major_categories)}
+
+Tax Strategies:
+{strategies_text}
+
+Provide specific, actionable recommendations with potential savings estimates where possible."""
+            
+            recommendations = await llm_client.agenerate_text(
+                strategy_prompt,
+                task_type="report_generation",
+                max_tokens=400
+            )
+            
+            return recommendations
+            
+    except Exception as e:
+        logger.log_agent_activity(
+            "report_generator", "tax_strategies_failed", "unknown",
+            error=str(e)
+        )
+    
+    return None
+
+async def get_compliance_insights(state: OverallState) -> Optional[str]:
+    """Get regulatory compliance insights"""
+    try:
+        transactions = state.get("transactions", [])
+        financial_metrics = state.get("financial_metrics")
+        
+        if not transactions:
+            return None
+        
+        # Analyze for compliance considerations
+        large_transactions = [tx for tx in transactions if abs(tx.amount) > 5000]
+        
+        if not large_transactions and not financial_metrics:
+            return None
+        
+        financial_regs_store = get_vector_store("financial_regulations")
+        
+        search_query = "financial reporting compliance requirements business recordkeeping"
+        
+        compliance_results = await financial_regs_store.similarity_search(
+            query=search_query,
+            k=3,
+            threshold=0.7,
+            namespace="general"
+        )
+        
+        if compliance_results:
+            compliance_text = "\n\n".join([
+                f"Compliance Requirement: {content[:250]}..."
+                for content, score, _ in compliance_results
+            ])
+            
+            # Generate specific compliance recommendations
+            llm_client = get_llm_client()
+            compliance_prompt = f"""Based on the following compliance requirements and business characteristics, provide 3-4 specific compliance recommendations:
+
+Business Characteristics:
+- Transaction Count: {len(transactions)}
+- Large Transactions (>$5,000): {len(large_transactions)}
+- Revenue: ${financial_metrics.total_revenue:,.2f if financial_metrics else 0}
+
+Compliance Requirements:
+{compliance_text}
+
+Provide actionable compliance recommendations."""
+            
+            recommendations = await llm_client.agenerate_text(
+                compliance_prompt,
+                task_type="report_generation",
+                max_tokens=400
+            )
+            
+            return recommendations
+            
+    except Exception as e:
+        logger.log_agent_activity(
+            "report_generator", "compliance_insights_failed", "unknown",
+            error=str(e)
+        )
+    
+    return None
+
+async def get_user_historical_context(config: Optional[RunnableConfig] = None, 
+                                    store=None) -> Optional[str]:
+    """Get historical context from shared memory"""
+    try:
+        if not config or not store:
+            return None
+        
+        memory_store = get_shared_memory_store()
+        user_id = config.get("configurable", {}).get("user_id", "default")
+        
+        # Search for previous categorization insights
+        categorizer_namespace = MemoryNamespaces.agent_namespace("tax_categorizer", user_id)
+        
+        previous_insights = await memory_store.search_memories(
+            namespace=categorizer_namespace,
+            limit=3
+        )
+        
+        if previous_insights:
+            # Analyze trends from previous analyses
+            trends = []
+            for insight in previous_insights:
+                value = insight.get("value", {})
+                accuracy = value.get("categorization_accuracy", 0)
+                total_deductible = value.get("total_deductible", 0)
+                
+                trends.append({
+                    "accuracy": accuracy,
+                    "deductible": total_deductible,
+                    "timestamp": value.get("timestamp", "")
+                })
+            
+            if trends:
+                # Generate historical context summary
+                avg_accuracy = sum(t["accuracy"] for t in trends) / len(trends)
+                avg_deductible = sum(t["deductible"] for t in trends) / len(trends)
+                
+                context = f"""Previous Analysis History ({len(trends)} analyses):
+- Average categorization accuracy: {avg_accuracy:.1f}%
+- Average deductible expenses: ${avg_deductible:,.2f}
+- Trend analysis shows {'improving' if trends[-1]['accuracy'] > avg_accuracy else 'consistent'} data quality"""
+                
+                return context
+                
+    except Exception as e:
+        logger.log_agent_activity(
+            "report_generator", "historical_context_failed", "unknown",
+            error=str(e)
+        )
+    
+    return None
+
+def insert_rag_sections(base_report: str, insights: Dict[str, str]) -> str:
+    """Insert RAG-enhanced sections into the base report"""
+    try:
+        # Find insertion points in the report
+        enhanced_report = base_report
+        
+        # Insert industry benchmarks after financial analysis
+        if "industry_benchmarks" in insights:
+            benchmark_section = f"""\n### Industry Benchmarks and Performance Analysis\n\n{insights['industry_benchmarks']}\n"""
+            
+            # Insert after "## Financial Analysis" section
+            financial_pos = enhanced_report.find("## Financial Analysis")
+            if financial_pos != -1:
+                # Find the end of the financial analysis section
+                next_section = enhanced_report.find("## ", financial_pos + 1)
+                if next_section != -1:
+                    enhanced_report = (
+                        enhanced_report[:next_section] + 
+                        benchmark_section + 
+                        enhanced_report[next_section:]
+                    )
+        
+        # Insert advanced tax strategies after tax analysis
+        if "advanced_tax_strategies" in insights:
+            tax_section = f"""\n### Advanced Tax Optimization Strategies\n\n{insights['advanced_tax_strategies']}\n"""
+            
+            # Insert after "## Tax Analysis" section
+            tax_pos = enhanced_report.find("## Tax Analysis")
+            if tax_pos != -1:
+                next_section = enhanced_report.find("## ", tax_pos + 1)
+                if next_section != -1:
+                    enhanced_report = (
+                        enhanced_report[:next_section] + 
+                        tax_section + 
+                        enhanced_report[next_section:]
+                    )
+        
+        # Insert regulatory insights after business intelligence
+        if "regulatory_insights" in insights:
+            regulatory_section = f"""\n## Regulatory Compliance Insights\n\n{insights['regulatory_insights']}\n"""
+            
+            # Insert before recommendations
+            recommendations_pos = enhanced_report.find("## Strategic Recommendations")
+            if recommendations_pos != -1:
+                enhanced_report = (
+                    enhanced_report[:recommendations_pos] + 
+                    regulatory_section + 
+                    enhanced_report[recommendations_pos:]
+                )
+        
+        # Insert historical context at the beginning of executive summary
+        if "historical_context" in insights:
+            context_section = f"""\n### Historical Performance Context\n\n{insights['historical_context']}\n"""
+            
+            # Insert after "### Key Findings"
+            findings_pos = enhanced_report.find("### Key Findings")
+            if findings_pos != -1:
+                # Find the end of the key findings section
+                next_section_pos = enhanced_report.find("## ", findings_pos)
+                if next_section_pos != -1:
+                    enhanced_report = (
+                        enhanced_report[:next_section_pos] + 
+                        context_section + 
+                        enhanced_report[next_section_pos:]
+                    )
+        
+        return enhanced_report
+        
+    except Exception as e:
+        logger.log_agent_activity(
+            "report_generator", "section_insertion_failed", "unknown",
+            error=str(e)
+        )
+        return base_report
+
+async def store_report_insights(state: OverallState, 
+                              report_md: str,
+                              config: Optional[RunnableConfig] = None,
+                              store=None):
+    """Store report insights in shared memory"""
+    try:
+        if not store:
+            return
+        
+        memory_store = get_shared_memory_store()
+        user_id = config.get("configurable", {}).get("user_id", "default") if config else "default"
+        
+        # Extract key metrics from state
+        financial_metrics = state.get("financial_metrics")
+        tax_summary = state.get("tax_summary")
+        
+        # Create report insights
+        insights = {
+            "timestamp": datetime.now().isoformat(),
+            "report_length": len(report_md),
+            "sections_generated": report_md.count("##"),
+            "client_id": state.get("client_id", "unknown"),
+            "analysis_type": state.get("analysis_type", "financial_analysis"),
+            "data_quality_score": state.get("data_quality_score", 0),
+            "total_transactions": len(state.get("transactions", [])),
+            "rag_enhanced": settings.rag_enabled
+        }
+        
+        if financial_metrics:
+            insights.update({
+                "revenue": float(financial_metrics.total_revenue),
+                "expenses": float(financial_metrics.total_expenses),
+                "gross_margin": financial_metrics.gross_margin_pct
+            })
+        
+        if tax_summary:
+            insights.update({
+                "deductible_expenses": float(tax_summary.total_deductible_expenses),
+                "categorization_accuracy": tax_summary.categorization_accuracy
+            })
+        
+        # Store in user-specific namespace
+        namespace = MemoryNamespaces.agent_namespace("report_generator", user_id)
+        key = f"report_insights_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        await memory_store.put_memory(namespace, key, insights)
+        
+        # Also store in global agent memories
+        global_namespace = MemoryNamespaces.REPORT_GENERATOR_MEMORIES
+        global_key = f"global_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        global_insights = {
+            **insights,
+            "user_id": user_id,
+            "anonymized": True
+        }
+        
+        await memory_store.put_memory(global_namespace, global_key, global_insights)
+        
+        logger.log_agent_activity(
+            "report_generator", "insights_stored", "unknown",
+            insights_count=len(insights)
+        )
+        
+    except Exception as e:
+        logger.log_agent_activity(
+            "report_generator", "insights_storage_failed", "unknown",
+            error=str(e)
+        )

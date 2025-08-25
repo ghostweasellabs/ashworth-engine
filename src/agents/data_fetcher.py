@@ -1,4 +1,5 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
+from langchain_core.runnables import RunnableConfig
 from src.workflows.state_schemas import OverallState, Transaction
 from src.utils.file_processing import detect_file_type, parse_file
 from src.utils.supabase_client import supabase_client
@@ -8,7 +9,10 @@ import io
 
 logger = StructuredLogger()
 
-def data_fetcher_agent(state: OverallState) -> Dict[str, Any]:
+def data_fetcher_agent(state: OverallState, 
+                      config: Optional[RunnableConfig] = None, 
+                      *, 
+                      store=None) -> Dict[str, Any]:
     """Extract financial data from various file formats"""
     trace_id = state.get("trace_id", "unknown")
     
