@@ -1,12 +1,17 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
+from langchain_core.runnables import RunnableConfig
 from src.workflows.state_schemas import OverallState, FinancialMetrics, Transaction
 from src.utils.financial_calculations import calculate_metrics
 from src.utils.supabase_client import supabase_client
 from src.utils.logging import StructuredLogger
+from decimal import Decimal
 
 logger = StructuredLogger()
 
-def data_processor_agent(state: OverallState) -> Dict[str, Any]:
+def data_processor_agent(state: OverallState, 
+                        config: Optional[RunnableConfig] = None, 
+                        *, 
+                        store=None) -> Dict[str, Any]:
     """Process and analyze financial transactions"""
     trace_id = state.get("trace_id", "unknown")
     

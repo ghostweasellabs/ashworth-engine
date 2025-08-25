@@ -1,4 +1,5 @@
 from typing import Dict, Any, List, Tuple, Optional
+from langchain_core.runnables import RunnableConfig
 from src.workflows.state_schemas import OverallState, Transaction
 from src.utils.supabase_client import supabase_client
 from src.utils.logging import StructuredLogger
@@ -10,7 +11,10 @@ import numpy as np
 
 logger = StructuredLogger()
 
-def data_cleaner_agent(state: OverallState) -> Dict[str, Any]:
+def data_cleaner_agent(state: OverallState, 
+                      config: Optional[RunnableConfig] = None, 
+                      *, 
+                      store=None) -> Dict[str, Any]:
     """Clean, standardize, and format extracted data for optimal LLM processing"""
     trace_id = state.get("trace_id", "unknown")
     

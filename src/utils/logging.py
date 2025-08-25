@@ -33,3 +33,7 @@ class StructuredLogger:
             **kwargs
         }
         self.logger.error(json.dumps(log_entry))
+
+def get_logger(name: str = __name__) -> logging.Logger:
+    """Get a standard logger instance"""
+    return logging.getLogger(name)

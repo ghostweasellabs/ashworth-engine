@@ -388,3 +388,6 @@ pnpm-debug.log*
 *.tar.gz
 *.rar
 *.7z
+
+# Custom
+.qoder/
