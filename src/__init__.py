@@ -1,0 +1,1 @@
+# Ashworth Engine - Multi-agent Financial Intelligence Platform
