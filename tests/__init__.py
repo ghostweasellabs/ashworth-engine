@@ -1,1 +1,1 @@
-# Test suite
+"""Test package for Ashworth Engine."""
