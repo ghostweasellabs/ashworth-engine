@@ -1,8 +1,0 @@
-{
-  \"dependencies\": [\"./pyproject.toml\"],
-  \"graphs\": {
-    \"financial_analysis\": \"./src/workflows/financial_analysis.py:app\"
-  },
-  \"env\": \".env\",
-  \"python_executable\": \"./.venv/bin/python\"
-}
