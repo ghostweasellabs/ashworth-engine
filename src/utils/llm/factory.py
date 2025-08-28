@@ -3,19 +3,13 @@
 from typing import Dict, Any
 from src.config.settings import settings
 from .router import LLMRouter
+from .config_manager import get_router_config
 
 
 def create_llm_router() -> LLMRouter:
-    """Create LLM router instance with application settings."""
-    config = {
-        "ollama_host": settings.ollama_host,
-        "openai_api_key": settings.openai_api_key,
-        "google_api_key": settings.google_api_key,
-        "fallback_order": settings.llm_fallback_order,
-        "gpt5_reasoning_effort": settings.gpt5_reasoning_effort,
-        "gpt5_include_reasoning": settings.gpt5_include_reasoning,
-        "gpt5_reasoning_depth": settings.gpt5_reasoning_depth,
-    }
+    """Create LLM router instance with comprehensive configuration."""
+    # Get configuration from the config manager (includes environment overrides)
+    config = get_router_config()
     
     return LLMRouter(config)
 

@@ -126,6 +126,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "chardet" },
+    { name = "click" },
     { name = "fastapi" },
     { name = "langchain" },
     { name = "langchain-community" },
@@ -161,6 +162,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "chardet", specifier = ">=5.2.0" },
+    { name = "click", specifier = ">=8.2.1" },
     { name = "fastapi", specifier = ">=0.104.0" },
     { name = "langchain", specifier = ">=0.1.0" },
     { name = "langchain-community", specifier = ">=0.0.10" },

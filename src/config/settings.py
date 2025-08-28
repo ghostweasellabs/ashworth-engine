@@ -51,6 +51,16 @@ class Settings(BaseSettings):
         env="LLM_FALLBACK_ORDER"
     )
     
+    # Model Selection Configuration
+    heavy_model_preference: str = Field(
+        default="auto",  # auto, gpt-5, gpt-4.1, gemini-2.5-pro, gpt-oss:20b
+        env="HEAVY_MODEL_PREFERENCE"
+    )
+    light_model_preference: str = Field(
+        default="auto",  # auto, gpt-4.1-mini, gemini-2.5-flash, gemma3n:e4b
+        env="LIGHT_MODEL_PREFERENCE"
+    )
+    
     # GPT-5 Specific Configuration
     gpt5_reasoning_effort: str = Field(
         default="medium",
@@ -63,6 +73,42 @@ class Settings(BaseSettings):
     gpt5_reasoning_depth: str = Field(
         default="standard",
         env="GPT5_REASONING_DEPTH"
+    )
+    
+    # Performance Monitoring Configuration
+    enable_metrics_logging: bool = Field(
+        default=True,
+        env="ENABLE_METRICS_LOGGING"
+    )
+    metrics_log_file: str = Field(
+        default="logs/llm_metrics.jsonl",
+        env="METRICS_LOG_FILE"
+    )
+    performance_threshold_seconds: float = Field(
+        default=30.0,
+        env="PERFORMANCE_THRESHOLD_SECONDS"
+    )
+    cost_threshold_dollars: float = Field(
+        default=0.10,
+        env="COST_THRESHOLD_DOLLARS"
+    )
+    
+    # Provider Health Check Configuration
+    health_check_interval_seconds: int = Field(
+        default=300,  # 5 minutes
+        env="HEALTH_CHECK_INTERVAL_SECONDS"
+    )
+    provider_timeout_seconds: int = Field(
+        default=60,
+        env="PROVIDER_TIMEOUT_SECONDS"
+    )
+    max_retries: int = Field(
+        default=3,
+        env="MAX_RETRIES"
+    )
+    retry_delay_seconds: float = Field(
+        default=1.0,
+        env="RETRY_DELAY_SECONDS"
     )
     
     # Application Configuration

@@ -25,6 +25,7 @@ dependencies = [
     "pytesseract>=0.3.13",
     "langchain-google-genai>=2.1.10",
     "ollama>=0.5.3",
+    "click>=8.2.1",
 ]
 
 [dependency-groups]
