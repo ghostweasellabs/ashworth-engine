@@ -246,8 +246,20 @@ def update_agent_state(
     Returns:
         Updated workflow state
     """
-    # Get the agent state
+    # Get the agent state or create a new one if it doesn't exist
     agent_state = state.get(agent_id, {})
+    
+    # Initialize agent state if it's empty
+    if not agent_state:
+        agent_state = AgentState(
+            agent_id=agent_id,
+            agent_name=agent_id.replace("_", " ").title(),
+            status=AgentStatus.NOT_STARTED,
+            retry_count=0,
+            input_data={},
+            output_data={},
+            memory={}
+        )
     
     # Update status and timing
     now = datetime.utcnow()
