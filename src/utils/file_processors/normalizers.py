@@ -82,8 +82,8 @@ class AmountNormalizer:
         if not amount_str or len(amount_str) > 20:
             return None
         
-        # Check if it looks like a valid amount (starts with digit, currency, or parenthesis)
-        if not re.match(r'^[\d$£€(]', amount_str):
+        # Check if it looks like a valid amount (starts with digit, currency, minus, or parenthesis)
+        if not re.match(r'^[\d$£€(-]', amount_str):
             return None
         
         # Remove currency symbols and spaces
