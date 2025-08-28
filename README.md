@@ -1,54 +1,90 @@
-# Ashworth Engine
+# Ashworth Engine v2
 
-Multi-agent financial intelligence platform built on LangGraph for automated financial document processing, analysis, and reporting.
-
-## Features
-
-- Multi-format document ingestion (CSV, Excel, PDF)
-- LangGraph-orchestrated multi-agent workflow
-- IRS compliance and tax categorization
-- Professional financial reporting
-- Local-first architecture for data security
+Multi-agent financial intelligence platform built on LangGraph with external Ollama integration.
 
 ## Quick Start
 
-1. Install dependencies:
+### Prerequisites
+- Python 3.11+
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) for Python package management
+- [Supabase CLI](https://supabase.com/docs/guides/cli) for local database
+- External Ollama server running at `192.168.7.43:11434`
+
+### Setup
+
+1. **Install dependencies**
    ```bash
    uv sync
    ```
 
-2. Copy environment configuration:
+2. **Start Supabase**
+   ```bash
+   # Windows
+   .\setup-supabase.ps1
+   
+   # Or manually
+   supabase start
+   ```
+
+3. **Configure environment**
    ```bash
    cp .env.example .env
+   # Edit .env if needed
    ```
 
-3. Run the application:
+4. **Run the API**
    ```bash
-   uv run python main.py
+   uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
    ```
 
-## Project Structure
+## Services
 
-- `src/agents/` - LangGraph agent implementations
-- `src/workflows/` - StateGraph workflow definitions
-- `src/api/` - FastAPI routes and endpoints
-- `src/config/` - Configuration management
-- `src/models/` - Pydantic data models
-- `src/utils/` - Utility functions
-- `tests/` - Test suite
+When running, you'll have:
+- **API**: http://localhost:8000
+- **Supabase Studio**: http://localhost:54323
+- **PostgreSQL**: localhost:54322
+- **External Ollama**: http://192.168.7.43:11434
+
+## Architecture
+
+- **Multi-Agent System**: LangGraph orchestrates specialized financial agents
+- **External LLM**: Uses external Ollama server (gpt-oss:20b model)
+- **Database**: Supabase PostgreSQL with pgvector for RAG
+- **State Management**: Persistent checkpoints and agent memory
+- **File Processing**: Handles Excel, CSV, PDF uploads
 
 ## Development
 
-Install development dependencies:
+Use the dev container for a complete development environment:
 ```bash
-uv sync --dev
+# Open in VS Code dev container
+code .
 ```
 
-Run tests:
+Or run locally:
 ```bash
-uv run pytest
+# Start Supabase
+supabase start
+
+# Run API
+uv run uvicorn main:app --reload
+
+# Run tests
+uv run python -m pytest
 ```
 
-## License
+## Agents
 
-Private - All rights reserved
+- **Dr. Marcus Thornfield** (Data Fetcher): Economist-driven data extraction
+- **Dexter Blackwood** (Data Processor): Fraud detection and data cleaning  
+- **Clarke Pemberton** (Categorizer): IRS compliance and tax optimization
+- **Professor Elena Castellanos** (Report Generator): Executive storytelling
+- **Dr. Victoria Ashworth** (Orchestrator): Workflow coordination
+
+## Tech Stack
+
+- **Backend**: FastAPI + LangGraph + PostgreSQL
+- **LLM**: External Ollama (gpt-oss:20b)
+- **Database**: Supabase (PostgreSQL + pgvector)
+- **Package Management**: uv
+- **Containerization**: Docker + Dev Containers
