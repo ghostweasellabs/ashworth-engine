@@ -4,8 +4,7 @@ Base file processor class with common functionality.
 
 import logging
 from pathlib import Path
-from typing import Dict, List
-from ...models.base import Transaction
+from typing import Dict, List, Any
 
 logger = logging.getLogger(__name__)
 
@@ -13,8 +12,8 @@ logger = logging.getLogger(__name__)
 class BaseFileProcessor:
     """Base class for file processors."""
     
-    def process(self, file_path: Path, source_name: str) -> List[Transaction]:
-        """Process a file and return transactions."""
+    def process(self, file_path: Path, source_name: str) -> List[Dict[str, Any]]:
+        """Process a file and return raw transaction data."""
         raise NotImplementedError
     
     def _generate_transaction_id(self, row_data: Dict, row_index: int, source_name: str = "unknown") -> str:

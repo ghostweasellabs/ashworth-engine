@@ -4,7 +4,7 @@ Image file processor with OCR capabilities.
 
 import logging
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Any
 
 # Optional imports with fallbacks
 try:
@@ -18,7 +18,6 @@ except ImportError:
 from .base import BaseFileProcessor
 from .exceptions import DataExtractionError
 from .pdf import PDFProcessor
-from ...models.base import Transaction
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +25,7 @@ logger = logging.getLogger(__name__)
 class ImageProcessor(BaseFileProcessor):
     """Processor for image files with OCR."""
     
-    def process(self, file_path: Path, source_name: str) -> List[Transaction]:
+    def process(self, file_path: Path, source_name: str) -> List[Dict[str, Any]]:
         """Process image file using OCR and text parsing."""
         if not HAS_OCR:
             raise DataExtractionError("OCR libraries not available for image processing")

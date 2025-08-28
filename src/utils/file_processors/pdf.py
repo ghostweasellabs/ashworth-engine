@@ -8,12 +8,11 @@ import PyPDF2
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 from .base import BaseFileProcessor
 from .exceptions import DataExtractionError
 from .normalizers import DateNormalizer, AmountNormalizer
-from ...models.base import Transaction
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +20,7 @@ logger = logging.getLogger(__name__)
 class PDFProcessor(BaseFileProcessor):
     """Processor for PDF files."""
     
-    def process(self, file_path: Path, source_name: str) -> List[Transaction]:
+    def process(self, file_path: Path, source_name: str) -> List[Dict[str, Any]]:
         """Process PDF file by extracting text and parsing."""
         transactions = []
         
@@ -64,7 +63,7 @@ class PDFProcessor(BaseFileProcessor):
         
         return text
     
-    def _parse_transactions_from_text(self, text: str, source_name: str) -> List[Transaction]:
+    def _parse_transactions_from_text(self, text: str, source_name: str) -> List[Dict[str, Any]]:
         """Parse transactions from extracted PDF text."""
         transactions = []
         
@@ -100,7 +99,7 @@ class PDFProcessor(BaseFileProcessor):
         
         return transactions
     
-    def _create_transaction_from_match(self, match, line_idx: int, source_name: str, original_line: str) -> Optional[Transaction]:
+    def _create_transaction_from_match(self, match, line_idx: int, source_name: str, original_line: str) -> Optional[Dict[str, Any]]:
         """Create transaction from regex match."""
         groups = match.groups()
         issues = []
@@ -145,12 +144,13 @@ class PDFProcessor(BaseFileProcessor):
             {'line': original_line}, line_idx, source_name
         )
         
-        return Transaction(
-            id=transaction_id,
-            date=date_val,
-            amount=amount_val,
-            description=description_val,
-            source_file=f"{source_name}:pdf",
-            data_quality_score=quality_score,
-            data_issues=issues
-        )
+        return {
+            "id": transaction_id,
+            "date": date_val.isoformat() if date_val else None,
+            "amount": str(amount_val) if amount_val else "0.00",
+            "description": description_val,
+            "source_file": f"{source_name}:pdf",
+            "data_quality_score": quality_score,
+            "data_issues": issues,
+            "raw_data": {"line": original_line}
+        }

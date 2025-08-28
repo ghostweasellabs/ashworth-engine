@@ -4,7 +4,7 @@ Main file processor with format detection and validation.
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, Any
 
 # Optional imports with fallbacks
 try:
@@ -19,7 +19,6 @@ from .excel import ExcelProcessor
 from .csv import CSVProcessor
 from .pdf import PDFProcessor
 from .image import ImageProcessor
-from ...models.base import Transaction
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +114,7 @@ class FileProcessor:
         
         return mime_type
     
-    def process_file(self, file_path: Union[str, Path], source_name: Optional[str] = None) -> List[Transaction]:
+    def process_file(self, file_path: Union[str, Path], source_name: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Process a file and extract financial transactions.
         
@@ -124,7 +123,7 @@ class FileProcessor:
             source_name: Optional name to use as source identifier
             
         Returns:
-            List of Transaction objects
+            List of raw transaction data dictionaries
             
         Raises:
             FileValidationError: If file validation fails

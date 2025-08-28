@@ -7,12 +7,11 @@ import pandas as pd
 import re
 import chardet
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 from .base import BaseFileProcessor
 from .exceptions import DataExtractionError
 from .excel import ExcelProcessor
-from ...models.base import Transaction
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +19,7 @@ logger = logging.getLogger(__name__)
 class CSVProcessor(BaseFileProcessor):
     """Processor for CSV files."""
     
-    def process(self, file_path: Path, source_name: str) -> List[Transaction]:
+    def process(self, file_path: Path, source_name: str) -> List[Dict[str, Any]]:
         """Process CSV file with encoding detection and error handling."""
         transactions = []
         
@@ -111,7 +110,7 @@ class CSVProcessor(BaseFileProcessor):
         df.columns = new_columns
         return df
     
-    def _extract_transaction_from_row(self, row: pd.Series, row_idx: int, source_name: str) -> Optional[Transaction]:
+    def _extract_transaction_from_row(self, row: pd.Series, row_idx: int, source_name: str) -> Optional[Dict[str, Any]]:
         """Extract transaction from CSV row."""
         # Reuse Excel extraction logic
         excel_processor = ExcelProcessor()

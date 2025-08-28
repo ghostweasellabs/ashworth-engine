@@ -8,12 +8,11 @@ import re
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict, Any
 
 from .base import BaseFileProcessor
 from .exceptions import DataExtractionError
 from .normalizers import DateNormalizer, AmountNormalizer, DataCleaner
-from ...models.base import Transaction
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +20,7 @@ logger = logging.getLogger(__name__)
 class ExcelProcessor(BaseFileProcessor):
     """Processor for Excel files (.xlsx, .xls)."""
     
-    def process(self, file_path: Path, source_name: str) -> List[Transaction]:
+    def process(self, file_path: Path, source_name: str) -> List[Dict[str, Any]]:
         """Process Excel file with robust error handling for messy data."""
         transactions = []
         
@@ -46,7 +45,7 @@ class ExcelProcessor(BaseFileProcessor):
         
         return transactions
     
-    def _process_excel_sheet(self, file_path: Path, sheet_name: str, source_name: str) -> List[Transaction]:
+    def _process_excel_sheet(self, file_path: Path, sheet_name: str, source_name: str) -> List[Dict[str, Any]]:
         """Process a single Excel sheet."""
         transactions = []
         
@@ -187,7 +186,7 @@ class ExcelProcessor(BaseFileProcessor):
         return None
     
     def _extract_transaction_from_row(self, row: pd.Series, row_idx: int, 
-                                    source_name: str, sheet_name: str) -> Optional[Transaction]:
+                                    source_name: str, sheet_name: str) -> Optional[Dict[str, Any]]:
         """Extract transaction from a row with extensive error handling."""
         issues = []
         
@@ -231,15 +230,17 @@ class ExcelProcessor(BaseFileProcessor):
         quality_score = self._calculate_data_quality_score(issues, len(row))
         transaction_id = self._generate_transaction_id(row.to_dict(), row_idx, source_name)
         
-        return Transaction(
-            id=transaction_id,
-            date=date_val,
-            amount=amount_val,
-            description=description_val,
-            source_file=f"{source_name}:{sheet_name}",
-            data_quality_score=quality_score,
-            data_issues=issues
-        )
+        return {
+            "id": transaction_id,
+            "date": date_val.isoformat() if date_val else None,
+            "amount": str(amount_val) if amount_val else "0.00",
+            "description": description_val,
+            "source_file": f"{source_name}:{sheet_name}",
+            "data_quality_score": quality_score,
+            "data_issues": issues,
+            "row_index": row_idx,
+            "raw_data": row.to_dict()
+        }
     
     def _extract_date(self, row: pd.Series) -> Tuple[Optional[datetime], List[str]]:
         """Extract date from row with multiple format support."""
