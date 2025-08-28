@@ -1,7 +1,7 @@
 """Configuration management using Pydantic settings."""
 
 import os
-from typing import Optional
+from typing import Optional, List
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
@@ -43,6 +43,26 @@ class Settings(BaseSettings):
     google_api_key: Optional[str] = Field(
         default=None,
         env="GOOGLE_API_KEY"
+    )
+    
+    # LLM Router Configuration
+    llm_fallback_order: List[str] = Field(
+        default=["ollama", "openai", "google"],
+        env="LLM_FALLBACK_ORDER"
+    )
+    
+    # GPT-5 Specific Configuration
+    gpt5_reasoning_effort: str = Field(
+        default="medium",
+        env="GPT5_REASONING_EFFORT"
+    )
+    gpt5_include_reasoning: bool = Field(
+        default=False,
+        env="GPT5_INCLUDE_REASONING"
+    )
+    gpt5_reasoning_depth: str = Field(
+        default="standard",
+        env="GPT5_REASONING_DEPTH"
     )
     
     # Application Configuration

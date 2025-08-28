@@ -23,6 +23,8 @@ dependencies = [
     "python-magic>=0.4.27",
     "pillow>=11.3.0",
     "pytesseract>=0.3.13",
+    "langchain-google-genai>=2.1.10",
+    "ollama>=0.5.3",
 ]
 
 [dependency-groups]
