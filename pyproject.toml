@@ -30,6 +30,9 @@ dependencies = [
     "aiohttp",
     "aiofiles",
     "httpx>=0.28.1",
+    "asyncpg>=0.30.0",
+    "openai>=1.102.0",
+    "pydantic-settings>=2.10.1",
 ]
 
 [dependency-groups]
