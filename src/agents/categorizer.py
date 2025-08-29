@@ -1,6 +1,7 @@
 """
 Categorizer Agent - Clarke Pemberton, JD, CPA
 Corporate Tax Compliance Strategist with strategic tax optimization mindset.
+Enhanced with agentic RAG for IRS compliance and rule-based categorization.
 """
 
 import asyncio
@@ -14,6 +15,12 @@ from src.agents.base import BaseAgent
 from src.config.personas import CATEGORIZER_PERSONALITY
 from src.workflows.state_schemas import WorkflowState, AgentStatus, AnalysisState
 from src.models.base import Transaction
+from src.utils.rag.agentic_reasoning import (
+    AgenticReasoningEngine, 
+    ConfidenceLevel, 
+    get_expense_deduction_guidance,
+    analyze_tax_rule
+)
 
 
 class CategorizerAgent(BaseAgent):
@@ -28,8 +35,11 @@ class CategorizerAgent(BaseAgent):
     def __init__(self):
         super().__init__(CATEGORIZER_PERSONALITY)
         
-        # Basic IRS expense categories (will be enhanced with RAG later)
-        self.irs_categories = {
+        # Initialize agentic RAG engine for IRS rule retrieval
+        self.rag_engine = AgenticReasoningEngine()
+        
+        # Fallback IRS expense categories for when RAG confidence is low
+        self.fallback_categories = {
             "utilities": {
                 "name": "Utilities",
                 "deduction_rate": Decimal("1.0"),
@@ -118,8 +128,15 @@ class CategorizerAgent(BaseAgent):
             "home_office_percentage": 0.4,  # High home office deductions
         }
         
-        # Citation tracking for audit defensibility
+        # Citation tracking for audit defensibility (enhanced with RAG citations)
         self.citations = []
+        
+        # RAG confidence thresholds for fallback behavior
+        self.rag_confidence_thresholds = {
+            "high_confidence": ConfidenceLevel.HIGH,
+            "medium_confidence": ConfidenceLevel.MEDIUM,
+            "fallback_threshold": ConfidenceLevel.LOW  # Below this, use conservative fallback
+        }
         
     def get_agent_id(self) -> str:
         """Get the agent's unique identifier."""
@@ -208,54 +225,321 @@ class CategorizerAgent(BaseAgent):
     
     async def _categorize_transactions(self, transactions: List[Transaction]) -> List[Transaction]:
         """
-        Categorize transactions using rule-based approach with strategic tax optimization.
+        Categorize transactions using agentic RAG with IRS rule retrieval and fallback to conservative categorization.
         
         Args:
             transactions: List of processed transactions
             
         Returns:
-            List of categorized transactions
+            List of categorized transactions with RAG-enhanced categorization
         """
         categorized_transactions = []
         
         for transaction in transactions:
-            # Apply strategic categorization logic
-            category_info = self._determine_category(transaction)
-            tax_category = category_info["name"]
-            deduction_rate = category_info["deduction_rate"]
-            irs_reference = category_info["irs_reference"]
-            
-            # Create updated transaction with categorization
-            categorized_tx = Transaction(
-                id=transaction.id,
-                date=transaction.date,
-                amount=transaction.amount,
-                description=transaction.description,
-                account_id=transaction.account_id,
-                counterparty=transaction.counterparty,
-                category=tax_category,
-                tax_category=tax_category,
-                source_file=transaction.source_file,
-                data_quality_score=transaction.data_quality_score,
-                data_issues=transaction.data_issues
-            )
-            
-            categorized_transactions.append(categorized_tx)
-            
-            # Add citation for audit defensibility
-            self.citations.append({
-                "transaction_id": transaction.id,
-                "category": tax_category,
-                "irs_reference": irs_reference,
-                "deduction_rate": float(deduction_rate),
-                "reasoning": f"Categorized as {tax_category} based on description analysis and IRS guidelines"
-            })
+            try:
+                # Apply agentic RAG categorization
+                category_info = await self._determine_category_with_rag(transaction)
+                tax_category = category_info["name"]
+                deduction_rate = category_info["deduction_rate"]
+                irs_reference = category_info["irs_reference"]
+                confidence = category_info["confidence"]
+                rag_citations = category_info.get("rag_citations", [])
+                
+                # Create updated transaction with categorization
+                categorized_tx = Transaction(
+                    id=transaction.id,
+                    date=transaction.date,
+                    amount=transaction.amount,
+                    description=transaction.description,
+                    account_id=transaction.account_id,
+                    counterparty=transaction.counterparty,
+                    category=tax_category,
+                    tax_category=tax_category,
+                    source_file=transaction.source_file,
+                    data_quality_score=transaction.data_quality_score,
+                    data_issues=transaction.data_issues
+                )
+                
+                categorized_transactions.append(categorized_tx)
+                
+                # Add enhanced citation for audit defensibility with RAG sources
+                citation_entry = {
+                    "transaction_id": transaction.id,
+                    "category": tax_category,
+                    "irs_reference": irs_reference,
+                    "deduction_rate": float(deduction_rate),
+                    "confidence": confidence.value,
+                    "reasoning": category_info.get("reasoning", f"Categorized as {tax_category} using agentic RAG analysis"),
+                    "rag_citations": rag_citations,
+                    "fallback_used": category_info.get("fallback_used", False)
+                }
+                
+                # Add error field if present
+                if "error" in category_info:
+                    citation_entry["error"] = category_info["error"]
+                
+                self.citations.append(citation_entry)
+                
+                self.logger.debug(f"Categorized transaction {transaction.id} as {tax_category} with {confidence.value} confidence")
+                
+            except Exception as e:
+                self.logger.error(f"Error categorizing transaction {transaction.id}: {str(e)}")
+                
+                # Conservative fallback for errors
+                fallback_category = self.fallback_categories["uncategorized"]
+                categorized_tx = Transaction(
+                    id=transaction.id,
+                    date=transaction.date,
+                    amount=transaction.amount,
+                    description=transaction.description,
+                    account_id=transaction.account_id,
+                    counterparty=transaction.counterparty,
+                    category=fallback_category["name"],
+                    tax_category=fallback_category["name"],
+                    source_file=transaction.source_file,
+                    data_quality_score=transaction.data_quality_score,
+                    data_issues=transaction.data_issues + [f"Categorization error: {str(e)}"]
+                )
+                
+                categorized_transactions.append(categorized_tx)
+                
+                # Add error citation
+                self.citations.append({
+                    "transaction_id": transaction.id,
+                    "category": fallback_category["name"],
+                    "irs_reference": fallback_category["irs_reference"],
+                    "deduction_rate": float(fallback_category["deduction_rate"]),
+                    "confidence": ConfidenceLevel.VERY_LOW.value,
+                    "reasoning": f"Error during categorization, using conservative fallback: {str(e)}",
+                    "rag_citations": [],
+                    "fallback_used": True,
+                    "error": str(e)
+                })
         
         return categorized_transactions
     
-    def _determine_category(self, transaction: Transaction) -> Dict[str, Any]:
+    async def _determine_category_with_rag(self, transaction: Transaction) -> Dict[str, Any]:
         """
-        Determine the appropriate tax category for a transaction using conservative compliance approach.
+        Determine the appropriate tax category using agentic RAG with IRS rule retrieval.
+        Falls back to conservative categorization when RAG confidence is low.
+        
+        Args:
+            transaction: Transaction to categorize
+            
+        Returns:
+            Category information with deduction rate, IRS reference, confidence, and RAG citations
+        """
+        try:
+            # Prepare context for RAG query
+            context = {
+                "transaction_amount": float(transaction.amount),
+                "transaction_date": transaction.date.isoformat(),
+                "business_type": "general",  # Could be enhanced with client-specific info
+                "description": transaction.description,
+                "counterparty": transaction.counterparty or "unknown"
+            }
+            
+            # Use convenience function for expense deduction guidance
+            rag_result = await get_expense_deduction_guidance(
+                transaction.description,
+                float(transaction.amount),
+                context.get("business_type", "general")
+            )
+            
+            # Check RAG confidence level
+            if rag_result.overall_confidence.value in [ConfidenceLevel.HIGH.value, ConfidenceLevel.MEDIUM.value]:
+                # High/medium confidence: use RAG result
+                category_info = await self._extract_category_from_rag_result(rag_result, transaction)
+                category_info["confidence"] = rag_result.overall_confidence
+                category_info["fallback_used"] = False
+                category_info["rag_citations"] = self._format_rag_citations(rag_result)
+                category_info["reasoning"] = rag_result.synthesized_guidance
+                
+                self.logger.info(f"RAG categorization successful for transaction {transaction.id} with {rag_result.overall_confidence.value} confidence")
+                return category_info
+                
+            else:
+                # Low confidence: fall back to conservative categorization
+                self.logger.warning(f"RAG confidence too low ({rag_result.overall_confidence.value}) for transaction {transaction.id}, using fallback")
+                return await self._determine_category_fallback(transaction, rag_result)
+                
+        except Exception as e:
+            self.logger.error(f"RAG categorization failed for transaction {transaction.id}: {str(e)}")
+            # Fall back to conservative categorization on error
+            return await self._determine_category_fallback(transaction, None, error=str(e))
+    
+    async def _extract_category_from_rag_result(self, rag_result, transaction: Transaction) -> Dict[str, Any]:
+        """
+        Extract category information from RAG reasoning result.
+        
+        Args:
+            rag_result: Result from agentic RAG reasoning
+            transaction: Original transaction
+            
+        Returns:
+            Category information dictionary
+        """
+        guidance = rag_result.synthesized_guidance.lower()
+        
+        # Determine category based on RAG guidance
+        if "meal" in guidance or "entertainment" in guidance:
+            if "50%" in guidance:
+                return {
+                    "name": "Meals and Entertainment",
+                    "deduction_rate": Decimal("0.5"),
+                    "irs_reference": self._extract_irs_reference(rag_result)
+                }
+            elif "not deductible" in guidance:
+                return {
+                    "name": "Non-Deductible Entertainment",
+                    "deduction_rate": Decimal("0.0"),
+                    "irs_reference": self._extract_irs_reference(rag_result)
+                }
+        
+        elif "travel" in guidance:
+            return {
+                "name": "Travel Expenses",
+                "deduction_rate": Decimal("1.0"),
+                "irs_reference": self._extract_irs_reference(rag_result)
+            }
+        
+        elif "office" in guidance or "supplies" in guidance:
+            return {
+                "name": "Office Expenses",
+                "deduction_rate": Decimal("1.0"),
+                "irs_reference": self._extract_irs_reference(rag_result)
+            }
+        
+        elif "equipment" in guidance or "depreciation" in guidance:
+            return {
+                "name": "Equipment and Depreciation",
+                "deduction_rate": Decimal("1.0"),
+                "irs_reference": self._extract_irs_reference(rag_result)
+            }
+        
+        elif "professional" in guidance or "legal" in guidance or "accounting" in guidance:
+            return {
+                "name": "Professional Services",
+                "deduction_rate": Decimal("1.0"),
+                "irs_reference": self._extract_irs_reference(rag_result)
+            }
+        
+        elif "utility" in guidance or "utilities" in guidance:
+            return {
+                "name": "Utilities",
+                "deduction_rate": Decimal("1.0"),
+                "irs_reference": self._extract_irs_reference(rag_result)
+            }
+        
+        elif "marketing" in guidance or "advertising" in guidance:
+            return {
+                "name": "Marketing and Advertising",
+                "deduction_rate": Decimal("1.0"),
+                "irs_reference": self._extract_irs_reference(rag_result)
+            }
+        
+        elif "insurance" in guidance:
+            return {
+                "name": "Insurance",
+                "deduction_rate": Decimal("1.0"),
+                "irs_reference": self._extract_irs_reference(rag_result)
+            }
+        
+        elif "rent" in guidance or "lease" in guidance:
+            return {
+                "name": "Rent and Lease",
+                "deduction_rate": Decimal("1.0"),
+                "irs_reference": self._extract_irs_reference(rag_result)
+            }
+        
+        elif "deductible" in guidance:
+            # General business expense
+            return {
+                "name": "General Business Expenses",
+                "deduction_rate": Decimal("1.0"),
+                "irs_reference": self._extract_irs_reference(rag_result)
+            }
+        
+        else:
+            # Conservative approach when unclear
+            return {
+                "name": "Uncategorized - Requires Review",
+                "deduction_rate": Decimal("0.0"),
+                "irs_reference": self._extract_irs_reference(rag_result) or "Manual review required"
+            }
+    
+    def _extract_irs_reference(self, rag_result) -> str:
+        """Extract IRS reference from RAG result citations."""
+        if not rag_result.rule_interpretations:
+            return "RAG analysis - no specific citation"
+        
+        # Get the highest confidence interpretation
+        best_interp = max(rag_result.rule_interpretations, 
+                         key=lambda x: x.citations[0].confidence_score if x.citations else 0)
+        
+        if best_interp.citations:
+            citation = best_interp.citations[0]
+            ref_parts = []
+            if citation.document_title:
+                ref_parts.append(citation.document_title)
+            if citation.section:
+                ref_parts.append(f"Section {citation.section}")
+            return ", ".join(ref_parts) if ref_parts else citation.document_id
+        
+        return "RAG analysis - citation unavailable"
+    
+    def _format_rag_citations(self, rag_result) -> List[Dict[str, Any]]:
+        """Format RAG citations for audit trail."""
+        formatted_citations = []
+        
+        for interp in rag_result.rule_interpretations:
+            for citation in interp.citations:
+                formatted_citations.append({
+                    "document_id": citation.document_id,
+                    "document_title": citation.document_title,
+                    "section": citation.section,
+                    "confidence_score": citation.confidence_score,
+                    "publication_year": citation.publication_year,
+                    "interpretation": interp.interpretation
+                })
+        
+        return formatted_citations
+    
+    async def _determine_category_fallback(self, transaction: Transaction, rag_result=None, error=None) -> Dict[str, Any]:
+        """
+        Conservative fallback categorization when RAG confidence is low or fails.
+        
+        Args:
+            transaction: Transaction to categorize
+            rag_result: Optional RAG result for additional context
+            error: Optional error message
+            
+        Returns:
+            Conservative category information
+        """
+        # Use original rule-based approach as fallback
+        fallback_category = self._determine_category_fallback_rules(transaction)
+        
+        # Add fallback metadata
+        fallback_category["confidence"] = ConfidenceLevel.LOW
+        fallback_category["fallback_used"] = True
+        fallback_category["rag_citations"] = []
+        
+        if rag_result:
+            fallback_category["reasoning"] = f"RAG confidence too low ({rag_result.overall_confidence.value}), using conservative fallback: {fallback_category['name']}"
+            # Include RAG citations even for fallback for audit trail
+            fallback_category["rag_citations"] = self._format_rag_citations(rag_result)
+        elif error:
+            fallback_category["reasoning"] = f"RAG error ({error}), using conservative fallback: {fallback_category['name']}"
+            fallback_category["error"] = error
+        else:
+            fallback_category["reasoning"] = f"Using conservative fallback categorization: {fallback_category['name']}"
+        
+        return fallback_category
+    
+    def _determine_category_fallback_rules(self, transaction: Transaction) -> Dict[str, Any]:
+        """
+        Original rule-based categorization logic for fallback scenarios.
         
         Args:
             transaction: Transaction to categorize
@@ -270,7 +554,7 @@ class CategorizerAgent(BaseAgent):
         # Score each category based on keyword matches with priority weighting
         category_scores = {}
         
-        for category_key, category_info in self.irs_categories.items():
+        for category_key, category_info in self.fallback_categories.items():
             if category_key == "uncategorized":
                 continue
                 
@@ -294,51 +578,83 @@ class CategorizerAgent(BaseAgent):
         # Select the category with the highest score
         if category_scores:
             best_category = max(category_scores.keys(), key=lambda k: category_scores[k])
-            return self.irs_categories[best_category]
+            return self.fallback_categories[best_category].copy()
         else:
             # Conservative approach: uncategorized for manual review
-            return self.irs_categories["uncategorized"]
+            return self.fallback_categories["uncategorized"].copy()
     
     def _analyze_tax_optimization(self, transactions: List[Transaction]) -> List[Dict[str, Any]]:
         """
-        Analyze transactions for tax optimization opportunities.
+        Analyze transactions for tax optimization opportunities using RAG-enhanced categorization insights.
         
         Args:
             transactions: Categorized transactions
             
         Returns:
-            List of optimization opportunities
+            List of optimization opportunities with RAG-derived insights
         """
         opportunities = []
         
         # Group transactions by category
         category_totals = {}
+        rag_insights = {}  # Track RAG insights by category
+        
         for tx in transactions:
             category = tx.tax_category or "Uncategorized"
             if category not in category_totals:
                 category_totals[category] = Decimal("0")
+                rag_insights[category] = []
             category_totals[category] += tx.amount
+            
+            # Collect RAG insights from citations
+            tx_citation = next((c for c in self.citations if c["transaction_id"] == tx.id), None)
+            if tx_citation and tx_citation.get("rag_citations"):
+                rag_insights[category].extend(tx_citation["rag_citations"])
         
-        # Analyze meal expenses for optimization
+        # Analyze meal expenses for optimization with RAG insights
         meal_total = category_totals.get("Meals and Entertainment", Decimal("0"))
         if meal_total > Decimal("50"):  # Lower threshold for realistic testing
+            meal_insights = rag_insights.get("Meals and Entertainment", [])
+            irs_ref = "IRS Publication 334, Chapter 11"  # Default
+            
+            # Use RAG citation if available
+            if meal_insights:
+                best_citation = max(meal_insights, key=lambda x: x.get("confidence_score", 0))
+                if best_citation.get("document_title"):
+                    irs_ref = best_citation["document_title"]
+                    if best_citation.get("section"):
+                        irs_ref += f", {best_citation['section']}"
+            
             opportunities.append({
                 "type": "meal_deduction_optimization",
                 "description": f"Meal expenses of ${meal_total:.2f} qualify for 50% business deduction",
                 "potential_savings": float(meal_total * Decimal("0.5") * Decimal("0.25")),  # Assume 25% tax rate
                 "action": "Ensure proper documentation for business purpose of meals",
-                "irs_reference": "IRS Publication 334, Chapter 11"
+                "irs_reference": irs_ref,
+                "rag_enhanced": bool(meal_insights)
             })
         
         # Analyze equipment purchases for depreciation vs expensing
         equipment_total = category_totals.get("Equipment and Depreciation", Decimal("0"))
         if equipment_total > Decimal("2500"):
+            equipment_insights = rag_insights.get("Equipment and Depreciation", [])
+            irs_ref = "IRS Publication 334, Chapter 9"  # Default
+            
+            # Use RAG citation if available
+            if equipment_insights:
+                best_citation = max(equipment_insights, key=lambda x: x.get("confidence_score", 0))
+                if best_citation.get("document_title"):
+                    irs_ref = best_citation["document_title"]
+                    if best_citation.get("section"):
+                        irs_ref += f", {best_citation['section']}"
+            
             opportunities.append({
                 "type": "section_179_deduction",
                 "description": f"Equipment purchases of ${equipment_total:.2f} may qualify for Section 179 immediate expensing",
                 "potential_savings": float(equipment_total * Decimal("0.25")),  # Assume 25% tax rate
                 "action": "Consider Section 179 election for immediate deduction vs depreciation",
-                "irs_reference": "IRS Publication 334, Chapter 9"
+                "irs_reference": irs_ref,
+                "rag_enhanced": bool(equipment_insights)
             })
         
         # Analyze large transactions for potential splitting
@@ -349,20 +665,77 @@ class CategorizerAgent(BaseAgent):
                 "description": f"Found {len(large_transactions)} transactions ≥ $10,000 requiring Form 8300 reporting",
                 "potential_savings": 0,
                 "action": "Review large transactions for proper reporting requirements and potential audit triggers",
-                "irs_reference": "Form 8300 reporting requirements"
+                "irs_reference": "Form 8300 reporting requirements",
+                "rag_enhanced": False
+            })
+        
+        # Add RAG-specific optimization opportunities
+        rag_opportunities = self._analyze_rag_optimization_insights()
+        opportunities.extend(rag_opportunities)
+        
+        return opportunities
+    
+    def _analyze_rag_optimization_insights(self) -> List[Dict[str, Any]]:
+        """
+        Analyze RAG citations for additional optimization opportunities.
+        
+        Returns:
+            List of RAG-derived optimization opportunities
+        """
+        opportunities = []
+        
+        # Analyze citations for patterns and insights
+        high_confidence_citations = [
+            c for c in self.citations 
+            if c.get("confidence") in [ConfidenceLevel.HIGH.value, ConfidenceLevel.MEDIUM.value]
+            and c.get("rag_citations")
+        ]
+        
+        # Look for conservative categorizations that could be optimized
+        conservative_citations = [
+            c for c in self.citations
+            if c.get("fallback_used") and c.get("rag_citations")
+        ]
+        
+        if conservative_citations:
+            opportunities.append({
+                "type": "rag_review_opportunity",
+                "description": f"Found {len(conservative_citations)} transactions with conservative fallback categorization",
+                "potential_savings": 0,  # Would need detailed analysis
+                "action": "Review RAG analysis for these transactions - may qualify for higher deductions with additional documentation",
+                "irs_reference": "RAG analysis suggests potential optimization",
+                "rag_enhanced": True,
+                "transaction_count": len(conservative_citations)
+            })
+        
+        # Look for conflicting categorizations that need professional review
+        conflicted_citations = [
+            c for c in self.citations
+            if c.get("confidence") == ConfidenceLevel.LOW.value and c.get("rag_citations")
+        ]
+        
+        if conflicted_citations:
+            opportunities.append({
+                "type": "professional_review_recommended",
+                "description": f"Found {len(conflicted_citations)} transactions with uncertain tax treatment",
+                "potential_savings": 0,
+                "action": "Professional tax consultation recommended for optimal categorization",
+                "irs_reference": "RAG analysis indicates complexity requiring professional guidance",
+                "rag_enhanced": True,
+                "transaction_count": len(conflicted_citations)
             })
         
         return opportunities
     
     def _assess_compliance_risks(self, transactions: List[Transaction]) -> List[Dict[str, Any]]:
         """
-        Assess compliance risks and potential audit triggers.
+        Assess compliance risks and potential audit triggers using RAG-enhanced analysis.
         
         Args:
             transactions: Categorized transactions
             
         Returns:
-            List of compliance risks
+            List of compliance risks with RAG insights
         """
         risks = []
         
@@ -375,7 +748,8 @@ class CategorizerAgent(BaseAgent):
                 "description": f"Found {len(cash_transactions)} transactions ≥ $10,000 requiring Form 8300 reporting",
                 "transactions": [tx.id for tx in cash_transactions],
                 "action": "File Form 8300 within 15 days of transaction",
-                "irs_reference": "Form 8300 Instructions"
+                "irs_reference": "Form 8300 Instructions",
+                "rag_enhanced": False
             })
         
         # Check for high percentage of round numbers (potential audit trigger)
@@ -388,21 +762,44 @@ class CategorizerAgent(BaseAgent):
                 "severity": "medium",
                 "description": f"High percentage of round amounts ({round_percentage:.1%}) may trigger audit attention",
                 "action": "Ensure proper documentation for round-number transactions",
-                "irs_reference": "General audit risk factors"
+                "irs_reference": "General audit risk factors",
+                "rag_enhanced": False
             })
         
-        # Check for high entertainment expenses
+        # Check for high entertainment expenses with RAG insights
         entertainment_total = sum(tx.amount for tx in transactions if tx.tax_category == "Meals and Entertainment")
         total_expenses = sum(tx.amount for tx in transactions)
         entertainment_percentage = float(entertainment_total / total_expenses) if total_expenses > 0 else 0
         
         if entertainment_percentage > self.audit_triggers["entertainment_percentage"]:
+            # Get RAG insights for entertainment expenses
+            entertainment_citations = [
+                c for c in self.citations 
+                if "meal" in c.get("category", "").lower() or "entertainment" in c.get("category", "").lower()
+            ]
+            
+            irs_ref = "IRS Publication 334, Chapter 11"  # Default
+            rag_enhanced = False
+            
+            if entertainment_citations:
+                rag_enhanced = True
+                # Use best RAG citation
+                best_citation = max(entertainment_citations, 
+                                  key=lambda x: max([rc.get("confidence_score", 0) for rc in x.get("rag_citations", [])], default=0))
+                if best_citation.get("rag_citations"):
+                    best_rag = max(best_citation["rag_citations"], key=lambda x: x.get("confidence_score", 0))
+                    if best_rag.get("document_title"):
+                        irs_ref = best_rag["document_title"]
+                        if best_rag.get("section"):
+                            irs_ref += f", {best_rag['section']}"
+            
             risks.append({
                 "type": "high_entertainment_expenses",
                 "severity": "medium", 
                 "description": f"Entertainment expenses represent {entertainment_percentage:.1%} of total expenses",
                 "action": "Ensure detailed documentation of business purpose for all entertainment expenses",
-                "irs_reference": "IRS Publication 334, Chapter 11"
+                "irs_reference": irs_ref,
+                "rag_enhanced": rag_enhanced
             })
         
         # Check for uncategorized transactions
@@ -414,19 +811,116 @@ class CategorizerAgent(BaseAgent):
                 "description": f"Found {len(uncategorized)} uncategorized transactions requiring manual review",
                 "transactions": [tx.id for tx in uncategorized],
                 "action": "Review and properly categorize all transactions for maximum deduction",
-                "irs_reference": "Conservative compliance approach"
+                "irs_reference": "Conservative compliance approach",
+                "rag_enhanced": False
+            })
+        
+        # RAG-specific compliance risks
+        rag_risks = self._assess_rag_compliance_risks(transactions)
+        risks.extend(rag_risks)
+        
+        return risks
+    
+    def _assess_rag_compliance_risks(self, transactions: List[Transaction]) -> List[Dict[str, Any]]:
+        """
+        Assess compliance risks specific to RAG analysis results.
+        
+        Args:
+            transactions: Categorized transactions
+            
+        Returns:
+            List of RAG-specific compliance risks
+        """
+        risks = []
+        
+        # Check for high percentage of fallback categorizations
+        fallback_citations = [c for c in self.citations if c.get("fallback_used")]
+        fallback_percentage = len(fallback_citations) / len(self.citations) if self.citations else 0
+        
+        if fallback_percentage > 0.3:  # More than 30% fallback
+            risks.append({
+                "type": "high_fallback_categorization",
+                "severity": "medium",
+                "description": f"High percentage ({fallback_percentage:.1%}) of transactions used conservative fallback categorization",
+                "action": "Review RAG system performance and consider updating IRS document database",
+                "irs_reference": "RAG system analysis",
+                "rag_enhanced": True,
+                "transaction_count": len(fallback_citations)
+            })
+        
+        # Check for low confidence categorizations
+        low_confidence_citations = [
+            c for c in self.citations 
+            if c.get("confidence") in [ConfidenceLevel.LOW.value, ConfidenceLevel.VERY_LOW.value]
+        ]
+        
+        if len(low_confidence_citations) > len(self.citations) * 0.2:  # More than 20% low confidence
+            risks.append({
+                "type": "low_confidence_categorizations",
+                "severity": "medium",
+                "description": f"Found {len(low_confidence_citations)} transactions with low confidence categorization",
+                "action": "Professional review recommended for low-confidence categorizations",
+                "irs_reference": "RAG confidence analysis",
+                "rag_enhanced": True,
+                "transaction_count": len(low_confidence_citations)
+            })
+        
+        # Check for RAG system errors
+        error_citations = [c for c in self.citations if c.get("error")]
+        if error_citations:
+            risks.append({
+                "type": "rag_system_errors",
+                "severity": "high",
+                "description": f"RAG system encountered errors processing {len(error_citations)} transactions",
+                "action": "Review RAG system configuration and IRS document database integrity",
+                "irs_reference": "System error analysis",
+                "rag_enhanced": True,
+                "transaction_count": len(error_citations),
+                "errors": [c.get("error") for c in error_citations]
             })
         
         return risks
     
     def _generate_citation_report(self) -> List[Dict[str, Any]]:
         """
-        Generate audit-defensible citation report for all categorization decisions.
+        Generate comprehensive audit-defensible citation report with RAG sources.
         
         Returns:
-            List of citations with IRS references
+            List of citations with IRS references and RAG analysis details
         """
-        return self.citations.copy()
+        enhanced_citations = []
+        
+        for citation in self.citations:
+            enhanced_citation = citation.copy()
+            
+            # Add RAG analysis summary
+            if citation.get("rag_citations"):
+                rag_summary = {
+                    "rag_sources_count": len(citation["rag_citations"]),
+                    "highest_confidence_source": max(
+                        citation["rag_citations"], 
+                        key=lambda x: x.get("confidence_score", 0)
+                    ) if citation["rag_citations"] else None,
+                    "document_sources": list(set(
+                        rc.get("document_title", "Unknown") 
+                        for rc in citation["rag_citations"]
+                    ))
+                }
+                enhanced_citation["rag_analysis"] = rag_summary
+            
+            # Add compliance flags
+            enhanced_citation["compliance_flags"] = {
+                "high_confidence": citation.get("confidence") == ConfidenceLevel.HIGH.value,
+                "rag_enhanced": bool(citation.get("rag_citations")),
+                "fallback_used": citation.get("fallback_used", False),
+                "professional_review_recommended": citation.get("confidence") in [
+                    ConfidenceLevel.LOW.value, ConfidenceLevel.VERY_LOW.value
+                ]
+            }
+            
+            enhanced_citations.append(enhanced_citation)
+        
+        return enhanced_citations
     
     def _calculate_tax_metrics(self, transactions: List[Transaction]) -> Dict[str, Decimal]:
         """
@@ -444,8 +938,8 @@ class CategorizerAgent(BaseAgent):
         # Calculate deductible amounts by category
         for tx in transactions:
             category_key = self._get_category_key(tx.tax_category)
-            if category_key in self.irs_categories:
-                deduction_rate = self.irs_categories[category_key]["deduction_rate"]
+            if category_key in self.fallback_categories:
+                deduction_rate = self.fallback_categories[category_key]["deduction_rate"]
                 total_deductible += tx.amount * deduction_rate
         
         # Estimate tax savings (assume 25% effective tax rate)
@@ -468,7 +962,7 @@ class CategorizerAgent(BaseAgent):
         Returns:
             Category key for lookup
         """
-        for key, info in self.irs_categories.items():
+        for key, info in self.fallback_categories.items():
             if info["name"] == category_name:
                 return key
         return "uncategorized"
