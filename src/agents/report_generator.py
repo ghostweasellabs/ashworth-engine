@@ -37,6 +37,7 @@ except ImportError:
             return {"data": [], "config": {}, "type": "line", "title": "Test"}
         async def create_bar_chart(self, *args, **kwargs):
             return {"data": [], "config": {}, "type": "bar", "title": "Test"}
+
 from src.models.base import Transaction, FinancialMetrics
 
 
@@ -489,8 +490,8 @@ With ${context['tax_deductible']:,.2f} in deductible expenses, the organization 
 ### Long-Term Planning
 - Create comprehensive financial forecasting models
 - Establish performance benchmarks and KPIs
-- Develop strategic partnerships for cost optimization""" 
-   
+- Develop strategic partnerships for cost optimization"""
+    
     def _structure_complete_report(
         self,
         narrative_content: Dict[str, Any],
