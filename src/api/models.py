@@ -138,3 +138,57 @@ class ValidationErrorResponse(BaseModel):
         json_encoders = {
             datetime: lambda v: v.isoformat()
         }
+
+
+class WorkflowInterruptRequest(BaseModel):
+    """Request model for workflow interruption."""
+    interrupt_before: Optional[str] = Field(
+        None, 
+        description="Agent ID to interrupt before (data_processor, categorizer, report_generator)"
+    )
+    message: Optional[str] = Field(
+        None,
+        description="Reason for interruption"
+    )
+
+
+class WorkflowInterruptResponse(BaseModel):
+    """Response model for workflow interruption."""
+    message: str
+    workflow_id: str
+    interrupt_before: Optional[str]
+    status: str
+
+
+class WorkflowResumeRequest(BaseModel):
+    """Request model for workflow resumption."""
+    message: Optional[str] = Field(
+        None,
+        description="Reason for resumption"
+    )
+
+
+class WorkflowResumeResponse(BaseModel):
+    """Response model for workflow resumption."""
+    message: str
+    workflow_id: str
+    resolved_interrupts: int
+
+
+class WorkflowListResponse(BaseModel):
+    """Response model for workflow listing."""
+    workflows: List[Dict[str, Any]]
+    total: int
+    limit: int
+    offset: int
+    has_more: bool
+    filters_applied: Dict[str, Any]
+
+
+class WorkflowCancellationResponse(BaseModel):
+    """Response model for workflow cancellation."""
+    message: str
+    workflow_id: str
+    cancelled_agents: List[str]
+    cleaned_files: int
+    cleanup_warnings: int

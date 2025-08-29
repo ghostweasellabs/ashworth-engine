@@ -10,19 +10,118 @@ from src.api.health import perform_comprehensive_health_check
 from src.api.models import HealthCheckResponse
 
 app = FastAPI(
-    title="Ashworth Engine",
-    description="Multi-agent financial intelligence platform built on LangGraph",
+    title="Ashworth Engine API",
+    description="""
+    ## Multi-Agent Financial Intelligence Platform
+    
+    The Ashworth Engine is a sophisticated financial analysis platform that processes 
+    financial documents through specialized AI agents to produce executive-grade reports 
+    and insights.
+    
+    ### Key Features
+    
+    * **Multi-Agent Processing**: Specialized agents for data extraction, processing, 
+      categorization, and report generation
+    * **Real-time Progress Tracking**: Monitor workflow progress with agent-level status
+    * **Flexible File Support**: Process CSV, Excel, and PDF financial documents
+    * **IRS Compliance**: Tax categorization following current IRS guidelines
+    * **Executive Reports**: Professional-grade financial analysis and recommendations
+    * **Workflow Management**: Full lifecycle management with cancellation and interrupts
+    
+    ### Workflow Process
+    
+    1. **Data Fetcher Agent** (Dr. Marcus Thornfield) - Extracts data from uploaded files
+    2. **Data Processor Agent** (Dexter Blackwood) - Cleans and validates financial data  
+    3. **Categorizer Agent** (Clarke Pemberton) - Applies tax categorization and compliance
+    4. **Report Generator Agent** (Prof. Elena Castellanos) - Creates executive reports
+    
+    ### Getting Started
+    
+    1. Upload financial documents using `POST /api/v1/workflows`
+    2. Monitor progress with `GET /api/v1/workflows/{workflow_id}`
+    3. Retrieve results with `GET /api/v1/workflows/{workflow_id}/results`
+    4. Check system health with `GET /health`
+    
+    ### File Upload Requirements
+    
+    * **Supported Formats**: CSV (.csv), Excel (.xlsx, .xls), PDF (.pdf)
+    * **Size Limits**: 50MB per file, 200MB total per workflow
+    * **Content**: Financial transactions, receipts, statements, expense reports
+    
+    ### Error Handling
+    
+    The API uses standard HTTP status codes and provides detailed error messages:
+    
+    * `200` - Success
+    * `202` - Accepted (workflow in progress)
+    * `400` - Bad Request (validation errors)
+    * `404` - Not Found
+    * `413` - File too large
+    * `415` - Unsupported file type
+    * `422` - Validation failed
+    * `500` - Internal server error
+    * `503` - Service unavailable
+    
+    ### Rate Limits
+    
+    * Workflow creation: 10 requests per minute per client
+    * Status checks: 100 requests per minute per client
+    * File uploads: 100MB per minute per client
+    """,
     version="0.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    contact={
+        "name": "Ashworth Engine Support",
+        "email": "support@ashworth-engine.com",
+    },
+    license_info={
+        "name": "MIT License",
+        "url": "https://opensource.org/licenses/MIT",
+    },
     openapi_tags=[
         {
             "name": "workflows",
-            "description": "Workflow management and execution"
+            "description": """
+            **Workflow Management and Execution**
+            
+            Create, monitor, and manage financial analysis workflows. Each workflow 
+            processes uploaded financial documents through multiple specialized agents 
+            to produce comprehensive financial insights and reports.
+            
+            Key endpoints:
+            * Create workflows with file uploads
+            * Monitor real-time progress and agent status  
+            * Retrieve complete or partial results
+            * Cancel or interrupt workflows for human review
+            * List and filter workflows with pagination
+            """
         },
         {
             "name": "health",
-            "description": "System health and monitoring"
+            "description": """
+            **System Health and Monitoring**
+            
+            Monitor the health and connectivity of all system components including 
+            databases, LLM providers, and external services. Essential for production 
+            monitoring and troubleshooting.
+            
+            Health checks include:
+            * Database connectivity (PostgreSQL/Supabase)
+            * LLM provider status (Ollama, OpenAI, Google)
+            * Service response times and availability
+            * Overall system health scoring
+            """
+        }
+    ],
+    servers=[
+        {
+            "url": "http://localhost:8000",
+            "description": "Development server"
+        },
+        {
+            "url": "https://api.ashworth-engine.com",
+            "description": "Production server"
         }
     ]
 )
