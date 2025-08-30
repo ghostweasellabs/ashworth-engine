@@ -1,0 +1,130 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light mode - refined professional palette */
+    --background: 0 0% 99%;
+    --foreground: 210 11% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 210 11% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 11% 15%;
+    --primary: 210 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 17% 95%;
+    --secondary-foreground: 210 11% 15%;
+    --muted: 210 17% 95%;
+    --muted-foreground: 210 6% 46%;
+    --accent: 210 17% 95%;
+    --accent-foreground: 210 11% 15%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 210 20% 90%;
+    --input: 210 20% 94%;
+    --ring: 210 100% 50%;
+    --radius: 0.75rem;
+    
+    /* Success colors */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    
+    /* Warning colors */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+  }
+
+  .dark {
+    /* Dark mode - professional neutral palette inspired by VS Code, GitHub, Linear */
+    --background: 220 13% 9%;
+    --foreground: 220 9% 89%;
+    --card: 220 13% 11%;
+    --card-foreground: 220 9% 89%;
+    --popover: 220 13% 11%;
+    --popover-foreground: 220 9% 89%;
+    --primary: 210 100% 60%;
+    --primary-foreground: 220 13% 9%;
+    --secondary: 220 13% 16%;
+    --secondary-foreground: 220 9% 89%;
+    --muted: 220 13% 16%;
+    --muted-foreground: 220 9% 60%;
+    --accent: 220 13% 18%;
+    --accent-foreground: 220 9% 89%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 13% 18%;
+    --input: 220 13% 16%;
+    --ring: 210 100% 60%;
+    
+    /* Success colors */
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 100%;
+    
+    /* Warning colors */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply text-foreground font-sans;
+    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
+    min-height: 100vh;
+  }
+  code, pre {
+    font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/60 backdrop-blur-xl border border-white/30 shadow-lg;
+  }
+  
+  .dark .glass {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl;
+  }
+  
+  .gradient-card {
+    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%);
+  }
+  
+  .dark .gradient-card {
+    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--accent)) 100%);
+  }
+  
+  .status-indicator {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .status-online {
+    @apply bg-green-100 text-green-800;
+  }
+  
+  .dark .status-online {
+    @apply bg-green-900/30 text-green-400;
+  }
+  
+  .status-warning {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+  
+  .dark .status-warning {
+    @apply bg-yellow-900/30 text-yellow-400;
+  }
+  
+  .status-error {
+    @apply bg-red-100 text-red-800;
+  }
+  
+  .dark .status-error {
+    @apply bg-red-900/30 text-red-400;
+  }
+}
