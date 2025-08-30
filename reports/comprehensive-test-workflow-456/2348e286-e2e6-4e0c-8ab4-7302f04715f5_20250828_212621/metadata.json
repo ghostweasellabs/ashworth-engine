@@ -1,0 +1,22 @@
+{
+  "report_id": "2348e286-e2e6-4e0c-8ab4-7302f04715f5",
+  "workflow_id": "comprehensive-test-workflow-456",
+  "generated_at": "2025-08-28T21:26:21.659646",
+  "generated_by": "Professor Elena Castellanos",
+  "agent_id": "report_generator",
+  "report_type": "executive_financial_analysis",
+  "version": "1.0",
+  "transaction_count": 4,
+  "financial_summary": {
+    "total_revenue": 0.0,
+    "total_expenses": 1925.5,
+    "net_income": -1925.5,
+    "tax_deductible": 1925.5
+  },
+  "category_count": 4,
+  "processing_metadata": {
+    "engine_version": "ashworth_v2",
+    "compliance_validated": true,
+    "executive_grade": true
+  }
+}

@@ -1,0 +1,78 @@
+[
+  {
+    "id": "expense_categories",
+    "type": "pie",
+    "title": "Expense Distribution by Category",
+    "data": [
+      {
+        "name": "Professional Services",
+        "value": 1200.0,
+        "percentage": 62.3
+      },
+      {
+        "name": "Equipment and Depreciation",
+        "value": 500.0,
+        "percentage": 26.0
+      },
+      {
+        "name": "Office Expenses",
+        "value": 150.0,
+        "percentage": 7.8
+      },
+      {
+        "name": "Meals and Entertainment",
+        "value": 75.5,
+        "percentage": 3.9
+      }
+    ],
+    "config": {
+      "type": "pie",
+      "title": "Expense Distribution by Category"
+    },
+    "insights": "The largest expense category is Professional Services, representing 62.3% of total expenses ($1,200.00). This concentration suggests opportunities for targeted cost optimization in this area."
+  },
+  {
+    "id": "monthly_trends",
+    "type": "line",
+    "title": "Monthly Financial Trends",
+    "data": [
+      {
+        "period": "2024-01",
+        "value": 225.5,
+        "formatted_value": "$225.50"
+      },
+      {
+        "period": "2024-02",
+        "value": 1700.0,
+        "formatted_value": "$1,700.00"
+      }
+    ],
+    "config": {
+      "type": "line",
+      "title": "Monthly Financial Trends"
+    },
+    "insights": "Monthly expenses have increased by 653.9% from the previous period, indicating growth trends that require strategic attention."
+  },
+  {
+    "id": "tax_optimization",
+    "type": "bar",
+    "title": "Tax Optimization Opportunities",
+    "data": [
+      {
+        "category": "section_179_deduction",
+        "value": 125.0,
+        "formatted_value": "$125.00"
+      },
+      {
+        "category": "meal_deduction_optimization",
+        "value": 18.88,
+        "formatted_value": "$18.88"
+      }
+    ],
+    "config": {
+      "type": "bar",
+      "title": "Tax Optimization Opportunities"
+    },
+    "insights": "Total potential tax savings of $143.88 identified, with section 179 deduction representing the largest opportunity. Implementing these optimizations could significantly improve tax efficiency."
+  }
+]

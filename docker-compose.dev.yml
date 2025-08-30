@@ -1,0 +1,34 @@
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - .:/workspace:cached
+      - /workspace/node_modules
+      - /workspace/.venv
+    working_dir: /workspace
+    command: sleep infinity
+    environment:
+      - OLLAMA_HOST=http://192.168.7.43:11434
+      - LLM_PROVIDER=ollama
+      - PYTHONPATH=/workspace
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@localhost:54322/postgres
+      - SUPABASE_URL=http://localhost:54321
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU}
+    ports:
+      - "8000:8000"
+      - "3000:3000"
+    network_mode: host
+
+# Prerequisites:
+# 1. Install Supabase CLI: https://supabase.com/docs/guides/cli  
+# 2. Run: supabase start
+# 
+# This provides the full Supabase suite:
+# - PostgreSQL with pgvector at localhost:54322
+# - Supabase Studio at localhost:54323
+# - API at localhost:54321  
+# - Auth, Storage, Edge Functions, etc.
