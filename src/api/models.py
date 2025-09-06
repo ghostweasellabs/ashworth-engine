@@ -35,6 +35,7 @@ class WorkflowCreateResponse(BaseModel):
     status: WorkflowStatus
     created_at: datetime
     message: str = "Workflow created successfully"
+    files_processed: Optional[int] = None
 
 
 class AgentStatusResponse(BaseModel):

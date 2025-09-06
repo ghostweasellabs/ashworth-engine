@@ -22,7 +22,8 @@ from src.workflows.routing import (
     WorkflowRouter
 )
 from src.agents.data_fetcher import DataFetcherAgent
-from src.agents.data_processor import DataProcessorAgent  
+from src.agents.pdf_document_intelligence import PDFDocumentIntelligenceAgent
+from src.agents.data_processor import DataProcessorAgent
 from src.agents.categorizer import CategorizerAgent
 from src.agents.report_generator import ReportGeneratorAgent
 
@@ -42,6 +43,7 @@ class FinancialAnalysisWorkflow:
         self.graph = self._build_graph()
         
         # Initialize agents
+        self.pdf_intelligence = PDFDocumentIntelligenceAgent()
         self.data_fetcher = DataFetcherAgent()
         self.data_processor = DataProcessorAgent()
         self.categorizer = CategorizerAgent()
@@ -54,6 +56,7 @@ class FinancialAnalysisWorkflow:
         workflow = StateGraph(WorkflowState)
         
         # Add agent nodes
+        workflow.add_node("pdf_intelligence", self._pdf_intelligence_node)
         workflow.add_node("data_fetcher", self._data_fetcher_node)
         workflow.add_node("data_processor", self._data_processor_node)
         workflow.add_node("categorizer", self._categorizer_node)
@@ -62,7 +65,8 @@ class FinancialAnalysisWorkflow:
         workflow.add_node("quality_check", self._quality_check_node)
         
         # Define sequential workflow edges
-        workflow.add_edge(START, "data_fetcher")
+        workflow.add_edge(START, "pdf_intelligence")
+        workflow.add_edge("pdf_intelligence", "data_fetcher")
         workflow.add_edge("data_fetcher", "data_processor")
         workflow.add_edge("data_processor", "categorizer")
         workflow.add_edge("categorizer", "quality_check")
@@ -93,8 +97,9 @@ class FinancialAnalysisWorkflow:
             "error_handler",
             should_retry,
             {
+                "retry_pdf_intelligence": "pdf_intelligence",
                 "retry_data_fetcher": "data_fetcher",
-                "retry_data_processor": "data_processor", 
+                "retry_data_processor": "data_processor",
                 "retry_categorizer": "categorizer",
                 "retry_report_generator": "report_generator",
                 "end": END
@@ -102,7 +107,43 @@ class FinancialAnalysisWorkflow:
         )
         
         return workflow
-    
+
+    async def _pdf_intelligence_node(self, state: WorkflowState) -> WorkflowState:
+        """Execute PDF document intelligence agent."""
+        logger.info(f"Starting PDF intelligence for workflow {state['workflow_id']}")
+
+        try:
+            # Update agent status to in progress
+            state = update_agent_state(state, "pdf_document_intelligence", AgentStatus.IN_PROGRESS)
+
+            # Execute PDF intelligence agent
+            result = await self.pdf_intelligence.execute(state)
+
+            # Update state with results
+            if "pdf_document_intelligence" in result:
+                state["pdf_document_intelligence"] = result["pdf_document_intelligence"]
+
+            state = update_agent_state(
+                state,
+                "pdf_document_intelligence",
+                AgentStatus.COMPLETED,
+                output_data=result
+            )
+
+            logger.info(f"PDF intelligence completed for workflow {state['workflow_id']}")
+
+        except Exception as e:
+            logger.error(f"PDF intelligence failed: {str(e)}")
+            state = update_agent_state(
+                state,
+                "pdf_document_intelligence",
+                AgentStatus.FAILED,
+                error_message=str(e)
+            )
+            state["errors"].append(f"PDF intelligence failed: {str(e)}")
+
+        return state
+
     async def _data_fetcher_node(self, state: WorkflowState) -> WorkflowState:
         """Execute data fetcher agent."""
         logger.info(f"Starting data fetcher for workflow {state['workflow_id']}")
@@ -145,6 +186,11 @@ class FinancialAnalysisWorkflow:
         logger.info(f"Starting data processor for workflow {state['workflow_id']}")
         
         try:
+            # Check if PDF intelligence completed successfully (if there were PDFs)
+            pdf_files = [f for f in state.get("input_files", []) if f.lower().endswith('.pdf')]
+            if pdf_files and state.get("pdf_document_intelligence", {}).get("status") != AgentStatus.COMPLETED:
+                raise ValueError("PDF intelligence must complete successfully before data processor")
+
             # Check if data fetcher completed successfully
             if state.get("data_fetcher", {}).get("status") != AgentStatus.COMPLETED:
                 raise ValueError("Data fetcher must complete successfully before data processor")

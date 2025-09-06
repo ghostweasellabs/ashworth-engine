@@ -2,7 +2,7 @@
  * Combat Operations Center (COC) - Main Entry Point
  * 
  * A modern web-based command center that provides all CLI functionality
- * through an intuitive, powerful interface built with Deno, Vite, and shadcn/ui.
+ * through an intuitive, powerful interface built with Deno, Vite, and IBM Carbon.
  */
 
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";

@@ -33,7 +33,7 @@ class Settings(BaseSettings):
         env="LLM_PROVIDER"
     )
     ollama_host: str = Field(
-        default="http://192.168.7.43:11434",
+        default="http://192.168.1.220:11434",
         env="OLLAMA_HOST"
     )
     openai_api_key: Optional[str] = Field(
@@ -139,6 +139,12 @@ class Settings(BaseSettings):
     upload_dir: str = Field(
         default="uploads",
         env="UPLOAD_DIR"
+    )
+
+    # Embedding Model Configuration
+    embedding_model: str = Field(
+        default="embeddinggemma",
+        env="EMBEDDING_MODEL"
     )
     
     class Config:

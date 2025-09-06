@@ -3,9 +3,12 @@
 import os
 import uuid
 import asyncio
+import logging
 from datetime import datetime
 from typing import List, Optional
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, BackgroundTasks
 from fastapi.responses import JSONResponse
@@ -37,6 +40,9 @@ from src.config.settings import settings
 
 # Create router
 router = APIRouter()
+
+# Import file processor for batch processing
+from src.utils.file_processors import FileProcessor
 
 # In-memory storage for workflows (replace with database in production)
 workflows_store: dict[str, WorkflowState] = {}
@@ -105,19 +111,44 @@ async def save_uploaded_file(file: UploadFile, upload_dir: str = "uploads") -> s
 
 
 async def execute_workflow_background(workflow_id: str):
-    """Execute workflow in background (placeholder for actual implementation)."""
-    # This is a placeholder - actual workflow execution will be implemented
-    # when the LangGraph orchestrator is ready
-    
+    """Execute workflow in background with Dr. Sharpe integration."""
+    from src.agents.pdf_document_intelligence import PDFDocumentIntelligenceAgent
+
     workflow = workflows_store.get(workflow_id)
     if not workflow:
         return
-    
+
     try:
         # Update workflow status to running
         workflow["status"] = WorkflowStatus.RUNNING
+
+        # Get PDF files from input
+        input_files = workflow.get("input_files", [])
+        pdf_files = [f for f in input_files if f.lower().endswith('.pdf')]
         
-        # Simulate agent execution (replace with actual LangGraph execution)
+        total_transactions = 0
+        
+        # If we have PDF files, run Dr. Sharpe first
+        if pdf_files:
+            logger.info(f"Running Dr. Sharpe on {len(pdf_files)} PDF files")
+            
+            # Initialize Dr. Sharpe
+            dr_sharpe = PDFDocumentIntelligenceAgent()
+            
+            # Execute Dr. Sharpe
+            sharpe_result = await dr_sharpe.execute(workflow)
+            
+            # Update workflow with Dr. Sharpe's results
+            workflow.update(sharpe_result)
+            
+            # Extract transaction count from Dr. Sharpe's results
+            pdf_intel = workflow.get("pdf_document_intelligence", {})
+            if pdf_intel:
+                metadata = pdf_intel.get("processing_metadata", {})
+                total_transactions = metadata.get("total_transactions", 0)
+                logger.info(f"Dr. Sharpe extracted {total_transactions} transactions")
+
+        # Simulate other agents for now (replace with actual LangGraph later)
         agents = ["data_fetcher", "data_processor", "categorizer", "report_generator"]
         
         for agent_id in agents:
@@ -127,7 +158,7 @@ async def execute_workflow_background(workflow_id: str):
                 workflow[agent_id]["started_at"] = datetime.utcnow()
             
             # Simulate processing time
-            await asyncio.sleep(2)
+            await asyncio.sleep(1)
             
             # Update agent status to completed
             if agent_id in workflow:
@@ -144,10 +175,14 @@ async def execute_workflow_background(workflow_id: str):
             duration = (workflow["completed_at"] - workflow["started_at"]).total_seconds() * 1000
             workflow["duration_ms"] = int(duration)
             
+        # Store the transaction count for results
+        workflow["_total_transactions"] = total_transactions
+            
     except Exception as e:
         # Update workflow status to failed
         workflow["status"] = WorkflowStatus.FAILED
         workflow["errors"].append(f"Workflow execution failed: {str(e)}")
+        logger.error(f"Workflow {workflow_id} failed: {str(e)}")
 
 
 @router.post("/workflows", response_model=WorkflowCreateResponse)
@@ -442,18 +477,24 @@ async def get_workflow_results(
     report_state = workflow.get("report", {})
     file_processing_state = workflow.get("file_processing", {})
     
+    # Get transaction count from Dr. Sharpe's results
+    dr_sharpe_transactions = workflow.get("_total_transactions", 0)
+    analysis_transactions = len(analysis_state.get("transactions", []))
+    total_transactions = max(dr_sharpe_transactions, analysis_transactions)
+    
     # Build processing summary with available data
     processing_summary = {
         "total_files_processed": len(workflow.get("input_files", [])),
-        "total_transactions": len(analysis_state.get("transactions", [])),
+        "total_transactions": total_transactions,
         "categories_identified": len(analysis_state.get("categories", {})),
         "anomalies_detected": len(analysis_state.get("anomalies", [])),
         "data_quality_score": workflow.get("quality_score"),
         "confidence_score": workflow.get("confidence_score"),
         "is_partial": status in [WorkflowStatus.PENDING, WorkflowStatus.RUNNING],
         "completed_agents": [
-            agent_id for agent_id in ["data_fetcher", "data_processor", "categorizer", "report_generator"]
-            if workflow.get(agent_id, {}).get("status") == AgentStatus.COMPLETED
+            agent_id for agent_id in ["pdf_intelligence", "data_fetcher", "data_processor", "categorizer", "report_generator"]
+            if workflow.get(agent_id, {}).get("status") == AgentStatus.COMPLETED or 
+               (agent_id == "pdf_intelligence" and workflow.get("pdf_document_intelligence", {}).get("status") == AgentStatus.COMPLETED)
         ]
     }
     
@@ -818,4 +859,132 @@ async def list_workflows(
             "client_id": client_id,
             "status": status
         }
+    )
+
+
+@router.post("/workflows/batch-uploads", response_model=WorkflowCreateResponse)
+async def create_batch_workflow(
+    background_tasks: BackgroundTasks,
+    client_id: str = "batch_client",
+    workflow_type: str = "financial_analysis",
+    file_types: Optional[str] = None,  # comma-separated: csv,excel,pdf
+    upload_dir: str = "uploads"
+):
+    """
+    Create a batch workflow to process all files in the uploads directory.
+
+    This endpoint automatically discovers and processes all supported files in the
+    uploads directory without requiring individual file uploads. Useful for batch
+    processing of existing files.
+
+    **Supported File Types:**
+    - CSV files (.csv)
+    - Excel files (.xlsx, .xls)
+    - PDF files (.pdf)
+
+    **File Type Filtering:**
+    Use the file_types parameter to process only specific file types:
+    - `?file_types=csv` - Only CSV files
+    - `?file_types=excel` - Only Excel files
+    - `?file_types=csv,excel,pdf` - Multiple types
+
+    **Example Usage:**
+    ```bash
+    # Process all files
+    curl -X POST "http://localhost:8000/api/v1/workflows/batch-uploads" \\
+         -H "accept: application/json" \\
+         -d '{"client_id": "batch_client", "workflow_type": "financial_analysis"}'
+
+    # Process only CSV files
+    curl -X POST "http://localhost:8000/api/v1/workflows/batch-uploads?file_types=csv" \\
+         -H "accept: application/json" \\
+         -d '{"client_id": "csv_batch", "workflow_type": "financial_analysis"}'
+    ```
+
+    Args:
+        client_id: Client identifier for tracking
+        workflow_type: Type of analysis workflow
+        file_types: Optional comma-separated list of file types to process
+        upload_dir: Directory to scan for files (default: uploads)
+
+    Returns:
+        WorkflowCreateResponse with workflow ID and status
+
+    Raises:
+        HTTPException:
+            - 404: No valid files found in uploads directory
+            - 500: Error during file processing
+    """
+
+    # Parse file type filter
+    allowed_types = None
+    if file_types:
+        allowed_types = set(ft.strip().lower() for ft in file_types.split(','))
+
+    # Initialize file processor
+    processor = FileProcessor()
+
+    # Scan uploads directory for files
+    upload_path = Path(upload_dir)
+    if not upload_path.exists():
+        upload_path.mkdir(parents=True, exist_ok=True)
+
+    found_files = []
+    validation_errors = []
+
+    # Process all files in directory
+    for file_path in upload_path.iterdir():
+        if not file_path.is_file():
+            continue
+
+        try:
+            # Validate file
+            file_type, file_size = processor.validate_file(file_path)
+
+            # Apply type filter if specified
+            if allowed_types and file_type not in allowed_types:
+                continue
+
+            found_files.append(str(file_path))
+
+        except Exception as e:
+            validation_errors.append({
+                "file": file_path.name,
+                "error": str(e)
+            })
+
+    if not found_files:
+        error_msg = f"No valid files found in {upload_dir}"
+        if validation_errors:
+            error_msg += f". Validation errors: {validation_errors}"
+        raise HTTPException(status_code=404, detail=error_msg)
+
+    # Generate workflow ID
+    workflow_id = str(uuid.uuid4())
+
+    # Create initial workflow state with all found files
+    workflow_state = create_initial_workflow_state(
+        workflow_id=workflow_id,
+        workflow_type=workflow_type,
+        input_files=found_files,
+        config={
+            "client_id": client_id,
+            "batch_processing": True,
+            "total_files": len(found_files),
+            "validation_errors": validation_errors
+        }
+    )
+
+    # Store workflow
+    workflows_store[workflow_id] = workflow_state
+
+    # Start workflow execution in background
+    background_tasks.add_task(execute_workflow_background, workflow_id)
+
+    return WorkflowCreateResponse(
+        workflow_id=workflow_id,
+        status=WorkflowStatus.PENDING,
+        created_at=workflow_state["started_at"],
+        message=f"Batch workflow created with {len(found_files)} files",
+        files_processed=len(found_files)
     )

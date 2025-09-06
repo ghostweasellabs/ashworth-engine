@@ -8,7 +8,7 @@ Multi-agent financial intelligence platform built on LangGraph with external Oll
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/getting-started/installation/) for Python package management
 - [Supabase CLI](https://supabase.com/docs/guides/cli) for local database
-- External Ollama server running at `192.168.7.43:11434`
+- External Ollama server running at `192.168.1.220:11434`
 
 ### Setup
 
@@ -43,7 +43,7 @@ When running, you'll have:
 - **API**: http://localhost:8000
 - **Supabase Studio**: http://localhost:54323
 - **PostgreSQL**: localhost:54322
-- **External Ollama**: http://192.168.7.43:11434
+- **External Ollama**: http://192.168.1.220:11434
 
 ## Architecture
 

@@ -1,14 +1,15 @@
-import React from "react";
-import { ThemeProvider } from "./contexts/theme-context";
-import { AppLayout } from "./components/layout";
-import { Dashboard } from "./components/dashboard";
+import React from 'react';
+import { RouterProvider } from 'react-router-dom';
+import { ThemeProvider } from '@/contexts/ThemeContext.tsx';
+import { LayoutProvider } from '@/contexts/LayoutContext.tsx';
+import { router } from '@/router/index.tsx';
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="system">
-      <AppLayout>
-        <Dashboard />
-      </AppLayout>
+    <ThemeProvider>
+      <LayoutProvider>
+        <RouterProvider router={router} />
+      </LayoutProvider>
     </ThemeProvider>
   );
 }

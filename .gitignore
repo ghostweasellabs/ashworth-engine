@@ -69,6 +69,12 @@ logs/
 uploads/
 data/private/
 
+# Google Cloud credentials
+*.json
+!package*.json
+!tsconfig*.json
+!components.json
+
 # OS
 .DS_Store
 .DS_Store?

@@ -10,7 +10,7 @@ services:
     working_dir: /workspace
     command: sleep infinity
     environment:
-      - OLLAMA_HOST=http://192.168.7.43:11434
+      - OLLAMA_HOST=http://192.168.1.220:11434
       - LLM_PROVIDER=ollama
       - PYTHONPATH=/workspace
       - NODE_ENV=development

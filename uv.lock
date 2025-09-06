@@ -140,6 +140,8 @@ dependencies = [
     { name = "chardet" },
     { name = "click" },
     { name = "fastapi" },
+    { name = "google-auth" },
+    { name = "google-cloud-documentai" },
     { name = "httpx" },
     { name = "langchain" },
     { name = "langchain-community" },
@@ -150,6 +152,7 @@ dependencies = [
     { name = "openai" },
     { name = "openpyxl" },
     { name = "pandas" },
+    { name = "pdf2image" },
     { name = "pillow" },
     { name = "psycopg2-binary" },
     { name = "pydantic" },
@@ -159,6 +162,7 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "python-magic" },
     { name = "python-multipart" },
+    { name = "requests" },
     { name = "supabase" },
     { name = "tabulate" },
     { name = "uvicorn", extra = ["standard"] },
@@ -183,6 +187,8 @@ requires-dist = [
     { name = "chardet", specifier = ">=5.2.0" },
     { name = "click", specifier = ">=8.2.1" },
     { name = "fastapi", specifier = ">=0.104.0" },
+    { name = "google-auth", specifier = ">=2.40.3" },
+    { name = "google-cloud-documentai", specifier = ">=3.6.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "langchain", specifier = ">=0.1.0" },
     { name = "langchain-community", specifier = ">=0.0.10" },
@@ -193,6 +199,7 @@ requires-dist = [
     { name = "openai", specifier = ">=1.102.0" },
     { name = "openpyxl", specifier = ">=3.1.0" },
     { name = "pandas", specifier = ">=2.1.0" },
+    { name = "pdf2image", specifier = ">=1.17.0" },
     { name = "pillow", specifier = ">=11.3.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.0" },
     { name = "pydantic", specifier = ">=2.5.0" },
@@ -202,6 +209,7 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "python-magic", specifier = ">=0.4.27" },
     { name = "python-multipart", specifier = ">=0.0.6" },
+    { name = "requests", specifier = ">=2.32.5" },
     { name = "supabase", specifier = ">=2.0.0" },
     { name = "tabulate", specifier = ">=0.9.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.24.0" },
@@ -687,6 +695,21 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/9e/9b/e92ef23b84fa10a64ce4831390b7a4c2e53c0132568d99d4ae61d04c8855/google_auth-2.40.3.tar.gz", hash = "sha256:500c3a29adedeb36ea9cf24b8d10858e152f2412e3ca37829b3fa18e33d63b77", size = 281029, upload-time = "2025-06-04T18:04:57.577Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/17/63/b19553b658a1692443c62bd07e5868adaa0ad746a0751ba62c59568cd45b/google_auth-2.40.3-py2.py3-none-any.whl", hash = "sha256:1370d4593e86213563547f97a92752fc658456fe4514c809544f330fed45a7ca", size = 216137, upload-time = "2025-06-04T18:04:55.573Z" },
+]
+
+[[package]]
+name = "google-cloud-documentai"
+version = "3.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-api-core", extra = ["grpc"] },
+    { name = "google-auth" },
+    { name = "proto-plus" },
+    { name = "protobuf" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/27/74/99a8b80f973afce5c782f8dcbcf1a1020c749a38eb39bc88ffb3ca20d4af/google_cloud_documentai-3.6.0.tar.gz", hash = "sha256:c91c1fd3da4d5656a857cffea5906636f7a220ec4b6a4bec2b3e781dca8bc43c", size = 349266, upload-time = "2025-09-02T15:40:04.598Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/24/92/e3c4850d5d1dd83da7538f1ee91baac9d4bc849e96899bc23ddbe20f15f4/google_cloud_documentai-3.6.0-py3-none-any.whl", hash = "sha256:4c630002eec653313cde75892c92a5482c0d4629997279b3244d356261f9b5f5", size = 300333, upload-time = "2025-09-02T15:39:23.845Z" },
 ]
 
 [[package]]
@@ -1615,6 +1638,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ca/bc/f35b8446f4531a7cb215605d100cd88b7ac6f44ab3fc94870c120ab3adbf/pathspec-0.12.1.tar.gz", hash = "sha256:a482d51503a1ab33b1c67a6c3813a26953dbdc71c31dacaef9a838c4e29f5712", size = 51043, upload-time = "2023-12-10T22:30:45Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cc/20/ff623b09d963f88bfde16306a54e12ee5ea43e9b597108672ff3a408aad6/pathspec-0.12.1-py3-none-any.whl", hash = "sha256:a0d503e138a4c123b27490a4f7beda6a01c6f288df0e4a8b79c7eb0dc7b4cc08", size = 31191, upload-time = "2023-12-10T22:30:43.14Z" },
+]
+
+[[package]]
+name = "pdf2image"
+version = "1.17.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pillow" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/00/d8/b280f01045555dc257b8153c00dee3bc75830f91a744cd5f84ef3a0a64b1/pdf2image-1.17.0.tar.gz", hash = "sha256:eaa959bc116b420dd7ec415fcae49b98100dda3dd18cd2fdfa86d09f112f6d57", size = 12811, upload-time = "2024-01-07T20:33:01.965Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/62/33/61766ae033518957f877ab246f87ca30a85b778ebaad65b7f74fa7e52988/pdf2image-1.17.0-py3-none-any.whl", hash = "sha256:ecdd58d7afb810dffe21ef2b1bbc057ef434dabbac6c33778a38a3f7744a27e2", size = 11618, upload-time = "2024-01-07T20:32:59.957Z" },
 ]
 
 [[package]]

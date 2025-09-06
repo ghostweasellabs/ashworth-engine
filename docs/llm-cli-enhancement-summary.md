@@ -151,7 +151,7 @@ export COST_THRESHOLD_DOLLARS=0.05
 export MAX_RETRIES=5
 
 # Provider configuration
-export OLLAMA_HOST=http://192.168.7.43:11434
+export OLLAMA_HOST=http://192.168.1.220:11434
 export LLM_FALLBACK_ORDER=ollama,openai,google
 ```
 

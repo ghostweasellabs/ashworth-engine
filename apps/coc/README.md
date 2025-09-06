@@ -1,86 +1,143 @@
 # Combat Operations Center (COC)
 
-A modern, visually stunning web-based command center that provides all the functionality of command line operations through an intuitive, powerful interface.
+A modern command center interface built with Deno, Vite, React, and IBM Carbon Design System.
 
-## Technology Stack
+## Features
 
-- **Runtime**: Deno 2.0+ with native TypeScript support
-- **Build Tool**: Vite for lightning-fast development and optimized builds
-- **UI Framework**: React 18+ with shadcn/ui components
-- **Styling**: Tailwind CSS with custom design system
-- **State Management**: Zustand (to be implemented)
+- **Modern Stack**: Deno + Vite + React + TypeScript
+- **Enterprise UI**: IBM Carbon Design System components
+- **Theme Support**: Multiple Carbon themes (white, g10, g90, g100)
+- **Responsive Design**: Mobile-first responsive layout
+- **Hot Reload**: Fast development with Vite HMR
 
-## Getting Started
+## Development
 
 ### Prerequisites
 
-- Deno 2.0 or later installed
-- Access to the existing Ashworth Engine monorepo
+- [Deno](https://deno.land/) installed
+- Node.js compatible environment for npm packages
 
-### Development
+### Getting Started
 
-```bash
-# Start development server
-deno task dev
+1. **Install dependencies**:
+   ```bash
+   deno install
+   ```
 
-# Build for production
-deno task build
+2. **Start development server**:
+   ```bash
+   deno task dev
+   ```
 
-# Preview production build
-deno task preview
+3. **Open browser**: Navigate to http://localhost:3001
 
-# Code quality
-deno task lint
-deno task fmt
-deno task type-check
-```
+### Available Scripts
 
-### Project Structure
+- `deno task dev` - Start development server with hot reload
+- `deno task build` - Build for production
+- `deno task preview` - Preview production build
+- `deno task lint` - Lint TypeScript/TSX files
+- `deno task fmt` - Format code
+- `deno task check` - Type check all files
+
+## Project Structure
 
 ```
 apps/coc/
 ├── src/
-│   ├── components/     # React components
-│   ├── lib/           # Utility functions
-│   ├── hooks/         # Custom React hooks
-│   ├── types/         # TypeScript type definitions
-│   ├── stores/        # State management
-│   ├── App.tsx        # Main application component
-│   ├── main.tsx       # React entry point
-│   └── globals.css    # Global styles
-├── public/            # Static assets
-├── deno.json          # Deno configuration
-├── vite.config.ts     # Vite configuration
-├── tailwind.config.js # Tailwind configuration
-└── index.html         # HTML entry point
+│   ├── App.tsx              # Main application component
+│   └── styles/
+│       └── index.scss       # Global styles with Carbon imports
+├── deno.json                # Deno configuration and tasks
+├── vite.config.ts           # Vite configuration
+├── tsconfig.json            # TypeScript configuration
+├── index.html               # HTML template
+├── main.ts                  # Application entry point
+├── dev.ts                   # Development server script
+├── build.ts                 # Build script
+└── preview.ts               # Preview server script
 ```
 
-## Features (Planned)
+## Technology Stack
 
-- 🗂️ File Management Interface
-- 📊 Process Monitoring Dashboard  
-- 📦 Package Management GUI
-- 🔄 Git Operations Interface
-- 🤖 Agent Chat System
-- 🧠 RAG Management Tools
-- 🌓 Light/Dark Theme Support
-- ⌨️ Keyboard Shortcuts & Command Palette
-- 🔄 Real-time Updates via WebSocket
+- **Runtime**: Deno 1.40+
+- **Build Tool**: Vite 5.0+
+- **Framework**: React 18.2+
+- **Language**: TypeScript 5.3+
+- **UI Library**: IBM Carbon Design System 1.59+
+- **Styling**: SCSS with Carbon design tokens
 
-## Integration
+## Carbon Design System
 
-This application integrates with the existing Ashworth Engine infrastructure:
+This project uses IBM Carbon Design System for consistent, enterprise-grade UI components:
 
-- **Backend**: FastAPI endpoints for all operations
-- **Database**: Supabase for data persistence
-- **Authentication**: Existing auth system
-- **Agents**: LangGraph multi-agent workflows
+- **Grid System**: CSS Grid-based responsive layout
+- **Components**: Pre-built accessible components
+- **Themes**: Support for light and dark themes
+- **Design Tokens**: Consistent spacing, colors, and typography
+- **Icons**: Carbon Icons React library
 
-## Development Guidelines
+## Configuration
 
-- Follow the established monorepo patterns
-- Use TypeScript for all code
-- Implement responsive design with Tailwind
-- Maintain professional, enterprise-grade UI
-- No emojis in the production interface
-- Focus on exceptional user experience
+### Environment Variables
+
+Copy `.env.example` to `.env` and configure:
+
+```bash
+# Development server
+VITE_PORT=3001
+VITE_HOST=localhost
+
+# API endpoints
+VITE_API_BASE_URL=http://localhost:8000
+VITE_WS_URL=ws://localhost:8000/ws
+
+# Application settings
+VITE_APP_NAME="Combat Operations Center"
+VITE_DEFAULT_THEME=white
+```
+
+### Vite Configuration
+
+The Vite configuration includes:
+- React plugin for JSX support
+- Path aliases (`@/` → `./src/`)
+- Development server on port 3001
+- Optimized build with code splitting
+- SCSS preprocessing
+
+### Deno Configuration
+
+The `deno.json` includes:
+- Import maps for npm packages
+- TypeScript compiler options
+- Formatting and linting rules
+- Task definitions for development workflow
+
+## Best Practices
+
+### Carbon Design System Usage
+
+- Use Carbon components instead of custom HTML elements
+- Follow Carbon's Grid system for layouts
+- Utilize Carbon design tokens for consistent styling
+- Implement proper theme switching with Theme component
+
+### Code Organization
+
+- Keep components focused and single-purpose
+- Use TypeScript for type safety
+- Follow Carbon's accessibility guidelines
+- Implement responsive design with Carbon's breakpoints
+
+## Contributing
+
+1. Follow the existing code style and formatting
+2. Use Carbon components when available
+3. Ensure responsive design across all breakpoints
+4. Test theme switching functionality
+5. Run linting and type checking before commits
+
+## License
+
+Part of the Ashworth Engine project.

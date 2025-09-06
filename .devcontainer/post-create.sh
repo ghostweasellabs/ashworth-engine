@@ -28,10 +28,10 @@ supabase start
 
 # Test Ollama connection
 echo "🤖 Testing Ollama connection..."
-if curl -s http://192.168.7.43:11434/api/tags > /dev/null; then
+if curl -s http://192.168.1.220:11434/api/tags > /dev/null; then
     echo "✅ Ollama server is accessible"
 else
-    echo "⚠️ Warning: Ollama server not accessible at http://192.168.7.43:11434"
+    echo "⚠️ Warning: Ollama server not accessible at http://192.168.1.220:11434"
 fi
 
 # Test Python environment

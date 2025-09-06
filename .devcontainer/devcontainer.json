@@ -117,7 +117,7 @@
         "rest-client.environmentVariables": {
           "local": {
             "baseUrl": "http://localhost:8000",
-            "ollamaHost": "http://192.168.7.43:11434"
+            "ollamaHost": "http://192.168.1.220:11434"
           }
         }
       }
@@ -151,7 +151,7 @@
   "postCreateCommand": "bash .devcontainer/post-create.sh",
   
   "remoteEnv": {
-    "OLLAMA_HOST": "http://192.168.7.43:11434",
+    "OLLAMA_HOST": "http://192.168.1.220:11434",
     "LLM_PROVIDER": "ollama",
     "PYTHONPATH": "/workspace",
     "NODE_ENV": "development",

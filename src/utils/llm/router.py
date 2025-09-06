@@ -56,7 +56,7 @@ class LLMRouter:
         provider_configs = {
             "ollama": ProviderConfig(
                 provider_class=OllamaProvider,
-                config={"host": self.config.get("ollama_host", "http://192.168.7.43:11434")},
+                config={"host": self.config.get("ollama_host", "http://192.168.1.220:11434")},
                 priority=1,  # Highest priority for local-first approach
                 enabled=True
             ),

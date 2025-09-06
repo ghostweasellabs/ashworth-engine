@@ -135,7 +135,7 @@ class LLMConfigManager:
         """Get complete router configuration."""
         return {
             # Provider configuration
-            "ollama_host": os.getenv("OLLAMA_HOST", "http://192.168.7.43:11434"),
+            "ollama_host": os.getenv("OLLAMA_HOST", "http://192.168.1.220:11434"),
             "openai_api_key": os.getenv("OPENAI_API_KEY"),
             "google_api_key": os.getenv("GOOGLE_API_KEY"),
             
@@ -275,7 +275,7 @@ class LLMConfigManager:
         template = """
 # LLM Provider Configuration
 LLM_PROVIDER=ollama
-OLLAMA_HOST=http://192.168.7.43:11434
+OLLAMA_HOST=http://192.168.1.220:11434
 OPENAI_API_KEY=your-openai-api-key-here
 GOOGLE_API_KEY=your-google-api-key-here
 
